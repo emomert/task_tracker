@@ -42,8 +42,8 @@ export function SignupPage() {
   if (needsConfirmation) {
     return (
       <AuthShell
-        title="Almost there"
-        subtitle="One more step"
+        title="Check your email"
+        subtitle="Confirm your account"
         footer={
           <Link to="/login" className="font-medium text-accent hover:underline">
             Back to sign in
@@ -51,10 +51,14 @@ export function SignupPage() {
         }
       >
         <p className="text-ui text-muted">
-          Your account was created, but email confirmation is turned on for this project. Since
-          WorkTrack sends no email, ask whoever set up Supabase to turn off{' '}
+          We sent a confirmation link to{' '}
+          <span className="font-medium text-ink">{email}</span>. Click it to verify your account,
+          then sign in.
+        </p>
+        <p className="mt-3 text-meta text-muted">
+          No email? Whoever set up Supabase can turn off{' '}
           <span className="font-medium text-ink">Confirm email</span> (Authentication → Providers →
-          Email), then sign in.
+          Email) so people can sign in immediately without verification.
         </p>
       </AuthShell>
     )
