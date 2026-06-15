@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Design tokens (see 04-design.md). A near-neutral, paper-like
+   base with a single calm indigo accent.
+
+   Tokens are stored as space-separated RGB channels so Tailwind's
+   opacity modifiers (e.g. bg-accent/90) work. Use rgb(var(--x))
+   in raw CSS.
+   ============================================================ */
+:root {
+  --bg: 251 251 250; /* #FBFBFA */
+  --surface: 255 255 255; /* #FFFFFF */
+  --border: 234 234 232; /* #EAEAE8 */
+  --text: 31 31 29; /* #1F1F1D */
+  --text-muted: 99 99 94; /* #63635E — darkened to clear WCAG AA (>=4.5:1) on bg & surface */
+  --accent: 79 70 229; /* #4F46E5 */
+  --accent-soft: 238 240 255; /* #EEF0FF */
+
+  --status-not-started: 154 160 166; /* #9AA0A6 */
+  --status-in-progress: 217 145 43; /* #D9912B */
+  --status-done: 46 158 107; /* #2E9E6B */
+
+  --priority-low: 154 160 166; /* #9AA0A6 */
+  --priority-medium: 59 130 246; /* #3B82F6 */
+  --priority-high: 224 83 61; /* #E0533D */
+
+  color-scheme: light;
+}
+
+@layer base {
+  * {
+    border-color: rgb(var(--border));
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: rgb(var(--bg));
+    color: rgb(var(--text));
+    font-family: theme('fontFamily.sans');
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Visible keyboard focus on every interactive element (quality floor). */
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  ::placeholder {
+    color: rgb(var(--text-muted));
+    opacity: 1;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md bg-accent px-3 py-1.5
+      text-ui font-medium text-white transition-colors
+      hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-line
+      bg-surface px-3 py-1.5 text-ui font-medium text-ink transition-colors
+      hover:bg-paper disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-2 py-1.5 text-ui
+      text-ink transition-colors hover:bg-paper disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .input-field {
+    @apply w-full rounded-md border border-line bg-surface px-3 py-2 text-ui text-ink
+      outline-none transition-shadow placeholder:text-muted
+      focus:border-accent focus:ring-2 focus:ring-accent/30;
+  }
+
+  .field-label {
+    @apply block text-label font-medium text-muted;
+  }
+}
+
+/* ============================================================
+   Markdown editor (BlockNote) — keep the canvas calm and
+   book-like. Strip heavy chrome, give it generous measure.
+   ============================================================ */
+.wt-editor .bn-editor {
+  background-color: transparent;
+  padding-inline: 0;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.wt-editor .bn-container {
+  background-color: transparent;
+}
+
+/* Respect reduced motion everywhere — but keep genuine progress spinners spinning. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .wt-spinner {
+    animation-duration: 0.8s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
