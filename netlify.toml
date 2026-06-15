@@ -1,0 +1,16 @@
+# Netlify build & SPA-routing config for WorkTrack (Vite static SPA).
+# Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in the Netlify UI
+# (Site configuration -> Environment variables), not here.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Single-page-app fallback so deep links (e.g. /project/:id) resolve to index.html.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
