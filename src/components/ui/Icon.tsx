@@ -158,6 +158,12 @@ export const FolderIcon = (p: IconProps) => (
   </Base>
 )
 
+export const ListIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+  </Base>
+)
+
 export const LayersIcon = (p: IconProps) => (
   <Base {...p}>
     <path d="m12 2 9 5-9 5-9-5 9-5Z" />

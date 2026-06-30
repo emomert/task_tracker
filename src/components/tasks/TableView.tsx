@@ -6,7 +6,8 @@ import { StatusSelect } from './StatusSelect'
 import { PrioritySelect } from './PrioritySelect'
 import { AssigneePicker } from './AssigneePicker'
 import { QuickAddTask } from './QuickAddTask'
-import { DueDate } from '../ui/DueDate'
+import { DatePicker } from '../ui/DatePicker'
+import { isOverdue } from '../ui/DueDate'
 import { ChevronDownIcon, ChevronUpIcon } from '../ui/Icon'
 
 type SortKey = 'title' | 'status' | 'priority' | 'due_date' | 'updated_at'
@@ -122,7 +123,16 @@ export function TableView({ tasks, onOpenTask, onPatch, onAssign, onAddTask }: T
                 />
               </td>
               <td className="py-1 pr-3">
-                <DueDate date={task.due_date} done={task.status === 'done'} emptyText="—" />
+                <DatePicker
+                  value={task.due_date}
+                  onChange={(date) => onPatch(task.id, { due_date: date })}
+                  ariaLabel="Set due date"
+                  buttonClassName={`inline-flex items-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-ui transition-colors hover:border-line hover:bg-paper ${
+                    isOverdue(task.due_date, task.status === 'done')
+                      ? 'font-medium text-priority-high'
+                      : 'text-ink'
+                  }`}
+                />
               </td>
               <td className="py-1 pr-3">
                 <PrioritySelect

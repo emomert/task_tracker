@@ -21,16 +21,26 @@ interface DatePickerProps {
   value: string | null
   onChange: (value: string | null) => void
   ariaLabel?: string
+  /** Override the trigger's styling (e.g. a subtler look inside a table). */
+  buttonClassName?: string
 }
 
+const DEFAULT_TRIGGER =
+  'inline-flex items-center gap-1.5 rounded-md border border-line bg-surface px-2 py-1 text-ui text-ink transition-colors hover:bg-paper'
+
 /** A calendar popover for picking a date — replaces the native date input. */
-export function DatePicker({ value, onChange, ariaLabel = 'Set date' }: DatePickerProps) {
+export function DatePicker({
+  value,
+  onChange,
+  ariaLabel = 'Set date',
+  buttonClassName = DEFAULT_TRIGGER,
+}: DatePickerProps) {
   const selected = value ? parseISO(value) : null
   return (
     <Popover
       ariaLabel={ariaLabel}
       panelClassName="w-64"
-      buttonClassName="inline-flex items-center gap-1.5 rounded-md border border-line bg-surface px-2 py-1 text-ui text-ink transition-colors hover:bg-paper"
+      buttonClassName={buttonClassName}
       button={
         value ? (
           <span className="inline-flex items-center gap-1.5">

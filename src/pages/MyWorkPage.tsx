@@ -1,17 +1,21 @@
 import { useMemo } from 'react'
+import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { addDays, isAfter, isBefore, parseISO, startOfToday } from 'date-fns'
+import { endOfWeek, isAfter, isBefore, parseISO, startOfToday } from 'date-fns'
 import { useAuth } from '../auth/AuthContext'
+import { useLocalStorageState } from '../hooks/useLocalStorageState'
 import { qk } from '../lib/queryClient'
 import { listMyTasks } from '../lib/api/tasks'
 import { PRIORITY_RANK } from '../lib/constants'
 import type { MyTask } from '../types'
+import { CalendarView } from '../components/tasks/CalendarView'
 import { ListSkeleton } from '../components/ui/Skeleton'
 import { ErrorState } from '../components/ui/ErrorState'
 import { StatusDot } from '../components/ui/StatusBadge'
 import { DueDate } from '../components/ui/DueDate'
 import { PriorityMarker } from '../components/ui/PriorityMarker'
+import { CalendarIcon, ListIcon } from '../components/ui/Icon'
 
 type Bucket = 'overdue' | 'week' | 'later' | 'none' | 'done'
 
@@ -22,6 +26,39 @@ const SECTIONS: Array<{ key: Bucket; title: string }> = [
   { key: 'none', title: 'No due date' },
   { key: 'done', title: 'Done' },
 ]
+
+type MyWorkView = 'list' | 'calendar'
+
+function ViewToggle({
+  view,
+  onChange,
+}: {
+  view: MyWorkView
+  onChange: (v: MyWorkView) => void
+}) {
+  const opts: Array<{ value: MyWorkView; label: string; icon: ReactNode }> = [
+    { value: 'list', label: 'List', icon: <ListIcon size={15} /> },
+    { value: 'calendar', label: 'Calendar', icon: <CalendarIcon size={15} /> },
+  ]
+  return (
+    <div className="inline-flex shrink-0 items-center rounded-md border border-line bg-surface p-0.5">
+      {opts.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          aria-pressed={view === o.value}
+          className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-ui transition-colors ${
+            view === o.value ? 'bg-accent-soft font-medium text-accent' : 'text-muted hover:text-ink'
+          }`}
+        >
+          {o.icon}
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 /** The personal "My Work" home: every task assigned to me, grouped by urgency. */
 export function MyWorkPage() {
@@ -34,10 +71,17 @@ export function MyWorkPage() {
     queryFn: () => listMyTasks(userId),
     enabled: !!userId,
   })
+  const [view, setView] = useLocalStorageState<MyWorkView>('wt:mywork-view', 'list')
+
+  const openMyTask = (taskId: string) => {
+    const t = (query.data ?? []).find((x) => x.id === taskId)
+    if (t) navigate(`/project/${t.project.id}/task/${taskId}`)
+  }
 
   const groups = useMemo(() => {
     const today = startOfToday()
-    const weekEnd = addDays(today, 7)
+    // "This week" runs through the end of the current Monday–Sunday week.
+    const weekEnd = endOfWeek(today, { weekStartsOn: 1 })
     const out: Record<Bucket, MyTask[]> = {
       overdue: [],
       week: [],
@@ -83,15 +127,24 @@ export function MyWorkPage() {
   let rowIndex = 0
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8 md:px-8">
-      <h1 className="text-display font-semibold text-ink">Your work</h1>
-      <p className="mt-1 text-ui text-muted">
-        {activeCount > 0
-          ? `${activeCount} task${activeCount === 1 ? '' : 's'} assigned to you across your projects.`
-          : 'Tasks assigned to you show up here.'}
-      </p>
+    <div className={`mx-auto px-6 py-8 md:px-8 ${view === 'calendar' ? 'max-w-5xl' : 'max-w-3xl'}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-display font-semibold text-ink">Your work</h1>
+          <p className="mt-1 text-ui text-muted">
+            {activeCount > 0
+              ? `${activeCount} task${activeCount === 1 ? '' : 's'} assigned to you across your projects.`
+              : 'Tasks assigned to you show up here.'}
+          </p>
+        </div>
+        <ViewToggle view={view} onChange={setView} />
+      </div>
 
-      {visibleSections.length === 0 ? (
+      {view === 'calendar' ? (
+        <div className="mt-6">
+          <CalendarView tasks={query.data ?? []} onOpenTask={openMyTask} />
+        </div>
+      ) : visibleSections.length === 0 ? (
         <div className="mt-16 flex flex-col items-center gap-2 text-center">
           <span className="text-3xl" aria-hidden="true">
             🌤️
