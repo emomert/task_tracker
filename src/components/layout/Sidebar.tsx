@@ -38,6 +38,7 @@ import { ProjectFormModal } from './ProjectFormModal'
 import {
   ChevronLeftIcon,
   GripIcon,
+  HomeIcon,
   LogOutIcon,
   MoonIcon,
   MoreIcon,
@@ -155,6 +156,17 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
             className={`transition-transform ${collapsed ? 'rotate-180' : ''}`}
           />
         </button>
+      </div>
+
+      {/* My Work — the personal dashboard / home */}
+      <div className="px-2 pb-1 pt-1">
+        <SidebarLink
+          to="/"
+          end
+          icon={<HomeIcon size={18} />}
+          label="My Work"
+          collapsed={collapsed && !isDrawer}
+        />
       </div>
 
       {/* Projects */}
@@ -320,15 +332,18 @@ function SidebarLink({
   icon,
   label,
   collapsed,
+  end,
 }: {
   to: string
   icon: React.ReactNode
   label: string
   collapsed: boolean
+  end?: boolean
 }) {
   return (
     <NavLink
       to={to}
+      end={end}
       title={collapsed ? label : undefined}
       className={({ isActive }) =>
         `flex items-center gap-2.5 rounded-md px-2 py-1.5 text-ui transition-colors ${
