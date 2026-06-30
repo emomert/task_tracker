@@ -17,10 +17,9 @@ import { DueDate } from '../components/ui/DueDate'
 import { PriorityMarker } from '../components/ui/PriorityMarker'
 import { CalendarIcon, ListIcon } from '../components/ui/Icon'
 
-type Bucket = 'high' | 'overdue' | 'week' | 'later' | 'none' | 'done'
+type Bucket = 'overdue' | 'week' | 'later' | 'none' | 'done'
 
 const SECTIONS: Array<{ key: Bucket; title: string }> = [
-  { key: 'high', title: 'High priority' },
   { key: 'overdue', title: 'Overdue' },
   { key: 'week', title: 'This week' },
   { key: 'later', title: 'Later' },
@@ -84,7 +83,6 @@ export function MyWorkPage() {
     // "This week" runs through the end of the current Monday–Sunday week.
     const weekEnd = endOfWeek(today, { weekStartsOn: 1 })
     const out: Record<Bucket, MyTask[]> = {
-      high: [],
       overdue: [],
       week: [],
       later: [],
@@ -94,7 +92,6 @@ export function MyWorkPage() {
     for (const t of query.data ?? []) {
       let bucket: Bucket
       if (t.status === 'done') bucket = 'done'
-      else if (t.priority === 'high') bucket = 'high'
       else if (!t.due_date) bucket = 'none'
       else {
         const d = parseISO(t.due_date)
@@ -125,7 +122,19 @@ export function MyWorkPage() {
   if (query.isError) return <ErrorState onRetry={() => query.refetch()} />
 
   const activeCount = (query.data ?? []).filter((t) => t.status !== 'done').length
-  const visibleSections = SECTIONS.filter((s) => groups[s.key].length > 0)
+  const highPriority = (query.data ?? [])
+    .filter((t) => t.status !== 'done' && t.priority === 'high')
+    .sort((a, b) => (a.due_date ?? '9999-99-99').localeCompare(b.due_date ?? '9999-99-99'))
+  const dateSections = SECTIONS.filter((s) => groups[s.key].length > 0).map((s) => ({
+    title: s.title,
+    tasks: groups[s.key],
+  }))
+  // High priority is a separate, additive section — its tasks still show in their
+  // own due-date sections below.
+  const sections =
+    highPriority.length > 0
+      ? [{ title: 'High priority', tasks: highPriority }, ...dateSections]
+      : dateSections
 
   let rowIndex = 0
 
@@ -147,7 +156,7 @@ export function MyWorkPage() {
         <div className="mt-6">
           <CalendarView tasks={query.data ?? []} onOpenTask={openMyTask} />
         </div>
-      ) : visibleSections.length === 0 ? (
+      ) : sections.length === 0 ? (
         <div className="mt-16 flex flex-col items-center gap-2 text-center">
           <span className="text-3xl" aria-hidden="true">
             🌤️
@@ -158,16 +167,16 @@ export function MyWorkPage() {
         </div>
       ) : (
         <div className="mt-8 space-y-8">
-          {visibleSections.map((section) => (
-            <section key={section.key}>
+          {sections.map((section) => (
+            <section key={section.title}>
               <h2 className="mb-2 flex items-center gap-2 text-meta font-medium uppercase tracking-wide text-muted">
                 {section.title}
                 <span className="rounded-full bg-paper px-1.5 text-meta normal-case text-muted">
-                  {groups[section.key].length}
+                  {section.tasks.length}
                 </span>
               </h2>
               <div className="overflow-hidden rounded-card border border-line bg-surface">
-                {groups[section.key].map((task) => {
+                {section.tasks.map((task) => {
                   const i = rowIndex++
                   const done = task.status === 'done'
                   return (
