@@ -42,6 +42,7 @@ import {
   ChevronRightIcon,
   GripIcon,
   HomeIcon,
+  LayersIcon,
   LogOutIcon,
   MoonIcon,
   MoreIcon,
@@ -87,7 +88,8 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
   )
 
   const createMut = useMutation({
-    mutationFn: (values: { name: string; emoji: string; color: string }) => createProject(values),
+    mutationFn: (values: { name: string; emoji: string; color: string; team_id: string | null }) =>
+      createProject(values),
     onSuccess: (project) => {
       queryClient.invalidateQueries({ queryKey: qk.projects })
       navigate(`/project/${project.id}`)
@@ -95,8 +97,19 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
   })
 
   const updateMut = useMutation({
-    mutationFn: (input: { id: string; name: string; emoji: string; color: string }) =>
-      updateProject(input.id, { name: input.name, emoji: input.emoji, color: input.color }),
+    mutationFn: (input: {
+      id: string
+      name: string
+      emoji: string
+      color: string
+      team_id: string | null
+    }) =>
+      updateProject(input.id, {
+        name: input.name,
+        emoji: input.emoji,
+        color: input.color,
+        team_id: input.team_id,
+      }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.projects }),
   })
 
@@ -297,6 +310,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
       {/* Secondary nav */}
       <div className="border-t border-line px-2 py-2">
         <SidebarLink to="/people" icon={<UsersIcon size={18} />} label="People" collapsed={collapsed && !isDrawer} />
+        <SidebarLink to="/teams" icon={<LayersIcon size={18} />} label="Teams" collapsed={collapsed && !isDrawer} />
         <SidebarLink to="/settings" icon={<SettingsIcon size={18} />} label="Settings" collapsed={collapsed && !isDrawer} />
       </div>
 
@@ -351,6 +365,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
         initialName={editing?.name}
         initialEmoji={editing?.emoji}
         initialColor={editing?.color}
+        initialTeamId={editing?.team_id}
         onClose={() => setEditing(null)}
         onSubmit={async (values) => {
           if (editing) await updateMut.mutateAsync({ id: editing.id, ...values })

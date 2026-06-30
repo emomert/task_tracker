@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Modal } from '../ui/Modal'
 import { Spinner } from '../ui/Spinner'
 import { EmojiPicker } from '../ui/EmojiPicker'
 import { errorMessage } from '../ui/ErrorState'
 import { CheckIcon } from '../ui/Icon'
 import { DEFAULT_PROJECT_EMOJI, PROJECT_COLORS } from '../../lib/constants'
+import { qk } from '../../lib/queryClient'
+import { listTeams } from '../../lib/api/teams'
 
 interface ProjectFormModalProps {
   open: boolean
@@ -12,7 +15,13 @@ interface ProjectFormModalProps {
   initialName?: string
   initialEmoji?: string
   initialColor?: string
-  onSubmit: (values: { name: string; emoji: string; color: string }) => Promise<void>
+  initialTeamId?: string | null
+  onSubmit: (values: {
+    name: string
+    emoji: string
+    color: string
+    team_id: string | null
+  }) => Promise<void>
   onClose: () => void
 }
 
@@ -22,14 +31,19 @@ export function ProjectFormModal({
   initialName = '',
   initialEmoji = DEFAULT_PROJECT_EMOJI,
   initialColor = 'neutral',
+  initialTeamId = null,
   onSubmit,
   onClose,
 }: ProjectFormModalProps) {
   const [name, setName] = useState(initialName)
   const [emoji, setEmoji] = useState(initialEmoji)
   const [color, setColor] = useState(initialColor)
+  const [teamId, setTeamId] = useState<string | null>(initialTeamId)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const teamsQuery = useQuery({ queryKey: qk.teams, queryFn: listTeams, enabled: open })
+  const teams = teamsQuery.data ?? []
 
   // Reset fields each time the modal opens.
   useEffect(() => {
@@ -37,9 +51,17 @@ export function ProjectFormModal({
       setName(initialName)
       setEmoji(initialEmoji)
       setColor(initialColor)
+      setTeamId(initialTeamId)
       setError(null)
     }
-  }, [open, initialName, initialEmoji, initialColor])
+  }, [open, initialName, initialEmoji, initialColor, initialTeamId])
+
+  // A brand-new project defaults to the first available team.
+  useEffect(() => {
+    if (open && mode === 'create' && initialTeamId == null && teamId == null && teams.length > 0) {
+      setTeamId(teams[0].id)
+    }
+  }, [open, mode, initialTeamId, teamId, teams])
 
   async function handleSubmit() {
     const trimmed = name.trim()
@@ -50,7 +72,7 @@ export function ProjectFormModal({
     try {
       setBusy(true)
       setError(null)
-      await onSubmit({ name: trimmed, emoji, color })
+      await onSubmit({ name: trimmed, emoji, color, team_id: teamId })
       onClose()
     } catch (err) {
       setError(errorMessage(err, "Couldn't save the project."))
@@ -121,6 +143,28 @@ export function ProjectFormModal({
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="mt-4">
+        <label htmlFor="project-team" className="field-label mb-1.5">
+          Team
+        </label>
+        <select
+          id="project-team"
+          className="input-field"
+          value={teamId ?? ''}
+          onChange={(e) => setTeamId(e.target.value || null)}
+        >
+          <option value="">No team (everyone can see it)</option>
+          {teams.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-meta text-muted">
+          Only members of the team (and admins) can see this project.
+        </p>
       </div>
 
       {error && <p className="mt-3 text-meta text-priority-high">{error}</p>}

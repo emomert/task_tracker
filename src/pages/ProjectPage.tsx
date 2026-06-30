@@ -179,6 +179,7 @@ export function ProjectPage() {
         initialName={project.name}
         initialEmoji={project.emoji}
         initialColor={project.color}
+        initialTeamId={project.team_id}
         onClose={() => setSettingsOpen(false)}
         onSubmit={async (values) => {
           await updateMut.mutateAsync(values)

@@ -1,11 +1,14 @@
 import { useMemo } from 'react'
 import type { ReactNode } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import type { Project, TaskWithAssignees } from '../../types'
 import { projectColor } from '../../lib/constants'
+import { qk } from '../../lib/queryClient'
+import { listTeams } from '../../lib/api/teams'
 import { isOverdue } from '../ui/DueDate'
 import { StatusDot } from '../ui/StatusBadge'
-import { ArchiveIcon, PencilIcon } from '../ui/Icon'
+import { ArchiveIcon, PencilIcon, UsersIcon } from '../ui/Icon'
 
 interface ProjectSidePanelProps {
   project: Project
@@ -31,6 +34,10 @@ export function ProjectSidePanel({ project, tasks, onEdit, onArchive }: ProjectS
   }, [tasks])
 
   const color = projectColor(project.color)
+  const teamsQuery = useQuery({ queryKey: qk.teams, queryFn: listTeams })
+  const teamName = project.team_id
+    ? teamsQuery.data?.find((t) => t.id === project.team_id)?.name
+    : null
 
   return (
     <aside className="hidden w-72 shrink-0 overflow-y-auto border-l border-line p-4 lg:block">
@@ -46,6 +53,11 @@ export function ProjectSidePanel({ project, tasks, onEdit, onArchive }: ProjectS
             {project.is_archived && <span className="text-muted">· archived</span>}
           </div>
         </div>
+      </div>
+
+      <div className="mt-3 inline-flex items-center gap-1.5 text-meta text-muted">
+        <UsersIcon size={13} />
+        {teamName ?? 'No team (everyone)'}
       </div>
 
       <div className="mt-5">

@@ -16,6 +16,13 @@ export interface Profile {
   created_at: string
 }
 
+export interface Team {
+  id: string
+  name: string
+  created_by: string | null
+  created_at: string
+}
+
 export interface Project {
   id: string
   name: string
@@ -23,6 +30,8 @@ export interface Project {
   /** A palette key (see PROJECT_COLORS in constants). */
   color: string
   is_archived: boolean
+  /** The team this project belongs to (null = visible to everyone). */
+  team_id: string | null
   description_md: string | null
   sort_order: number
   created_by: string | null
@@ -67,12 +76,16 @@ export interface NewProject {
   name: string
   emoji?: string
   color?: string
+  team_id?: string | null
   sort_order?: number
   created_by?: string | null
 }
 
 export type ProjectPatch = Partial<
-  Pick<Project, 'name' | 'emoji' | 'color' | 'is_archived' | 'description_md' | 'sort_order'>
+  Pick<
+    Project,
+    'name' | 'emoji' | 'color' | 'is_archived' | 'team_id' | 'description_md' | 'sort_order'
+  >
 >
 
 export interface NewTask {

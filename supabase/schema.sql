@@ -161,3 +161,108 @@ create policy "update own or admin profile" on public.profiles for update to aut
 
 -- Bootstrap the first admin once, then manage the rest from the People page:
 --   update public.profiles set is_admin = true where email = 'you@example.com';
+
+-- ============================================================
+-- Teams (feature batch 2) — access-control grouping.
+-- A person can be on many teams; a project belongs to one team.
+-- You can see a project only if you're a member of its team (or an admin).
+-- Projects with a NULL team are visible to everyone (treated as unassigned).
+-- ============================================================
+create table if not exists public.teams (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.team_members (
+  team_id    uuid not null references public.teams(id) on delete cascade,
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (team_id, profile_id)
+);
+
+alter table public.projects add column if not exists team_id uuid references public.teams(id) on delete set null;
+create index if not exists projects_team_id_idx on public.projects(team_id);
+create index if not exists team_members_profile_idx on public.team_members(profile_id);
+
+-- Access helpers (private schema, not exposed via the REST API).
+create or replace function private.is_team_member(team uuid)
+returns boolean language sql security definer stable set search_path = '' as $$
+  select exists (select 1 from public.team_members tm where tm.team_id = team and tm.profile_id = auth.uid())
+$$;
+revoke all on function private.is_team_member(uuid) from public;
+grant execute on function private.is_team_member(uuid) to authenticated;
+
+create or replace function private.can_access_project(pid uuid)
+returns boolean language sql security definer stable set search_path = '' as $$
+  select coalesce((
+    select p.team_id is null or private.is_admin() or private.is_team_member(p.team_id)
+    from public.projects p where p.id = pid
+  ), false)
+$$;
+revoke all on function private.can_access_project(uuid) from public;
+grant execute on function private.can_access_project(uuid) to authenticated;
+
+create or replace function private.can_access_task(tid uuid)
+returns boolean language sql security definer stable set search_path = '' as $$
+  select coalesce((select private.can_access_project(t.project_id) from public.tasks t where t.id = tid), false)
+$$;
+revoke all on function private.can_access_task(uuid) from public;
+grant execute on function private.can_access_task(uuid) to authenticated;
+
+alter table public.teams        enable row level security;
+alter table public.team_members enable row level security;
+
+drop policy if exists "read teams" on public.teams;
+create policy "read teams" on public.teams for select to authenticated using (true);
+drop policy if exists "admins manage teams" on public.teams;
+create policy "admins manage teams" on public.teams for all to authenticated
+  using (private.is_admin()) with check (private.is_admin());
+
+drop policy if exists "read team_members" on public.team_members;
+create policy "read team_members" on public.team_members for select to authenticated using (true);
+drop policy if exists "join or admin team_members" on public.team_members;
+create policy "join or admin team_members" on public.team_members for all to authenticated
+  using (profile_id = (select auth.uid()) or private.is_admin())
+  with check (profile_id = (select auth.uid()) or private.is_admin());
+
+-- Re-gate projects / tasks / task_assignees by team access (replaces the
+-- permissive "everyone can read/write" policies above).
+drop policy if exists "read projects" on public.projects;
+drop policy if exists "write projects" on public.projects;
+drop policy if exists "read accessible projects" on public.projects;
+drop policy if exists "write accessible projects" on public.projects;
+create policy "read accessible projects" on public.projects for select to authenticated
+  using (team_id is null or private.is_admin() or private.is_team_member(team_id));
+create policy "write accessible projects" on public.projects for all to authenticated
+  using (team_id is null or private.is_admin() or private.is_team_member(team_id))
+  with check (team_id is null or private.is_admin() or private.is_team_member(team_id));
+
+drop policy if exists "read tasks" on public.tasks;
+drop policy if exists "write tasks" on public.tasks;
+drop policy if exists "read accessible tasks" on public.tasks;
+drop policy if exists "write accessible tasks" on public.tasks;
+create policy "read accessible tasks" on public.tasks for select to authenticated
+  using (private.can_access_project(project_id));
+create policy "write accessible tasks" on public.tasks for all to authenticated
+  using (private.can_access_project(project_id)) with check (private.can_access_project(project_id));
+
+drop policy if exists "read task_assignees" on public.task_assignees;
+drop policy if exists "write task_assignees" on public.task_assignees;
+drop policy if exists "read accessible task_assignees" on public.task_assignees;
+drop policy if exists "write accessible task_assignees" on public.task_assignees;
+create policy "read accessible task_assignees" on public.task_assignees for select to authenticated
+  using (private.can_access_task(task_id));
+create policy "write accessible task_assignees" on public.task_assignees for all to authenticated
+  using (private.can_access_task(task_id)) with check (private.can_access_task(task_id));
+
+-- One-time migration (only needed on an existing project): put everyone in a
+-- 'General' team and assign team-less projects to it, so nothing disappears.
+--   insert into public.teams (name) select 'General'
+--     where not exists (select 1 from public.teams where name = 'General');
+--   insert into public.team_members (team_id, profile_id)
+--     select t.id, p.id from public.teams t cross join public.profiles p
+--     where t.name = 'General' on conflict do nothing;
+--   update public.projects set team_id = (select id from public.teams where name='General' limit 1)
+--     where team_id is null;
