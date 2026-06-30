@@ -8,6 +8,8 @@ interface PopoverProps {
   buttonClassName?: string
   align?: 'left' | 'right'
   panelClassName?: string
+  /** Make the panel exactly as wide as the trigger (for select-style dropdowns). */
+  matchTriggerWidth?: boolean
   children: (close: () => void) => ReactNode
 }
 
@@ -22,9 +24,13 @@ export function Popover({
   buttonClassName = '',
   align = 'left',
   panelClassName = '',
+  matchTriggerWidth = false,
   children,
 }: PopoverProps) {
-  const { open, setOpen, triggerRef, panelRef, panelStyle } = useAnchoredPopover(align)
+  const { open, setOpen, triggerRef, panelRef, panelStyle } = useAnchoredPopover(
+    align,
+    matchTriggerWidth,
+  )
 
   return (
     <>

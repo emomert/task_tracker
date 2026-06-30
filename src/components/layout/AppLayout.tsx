@@ -46,7 +46,7 @@ export function AppLayout() {
           >
             <PanelLeftIcon size={18} />
           </button>
-          <span className="text-ui font-semibold">WorkTrack</span>
+          <span className="text-ui font-semibold">Task Tracker</span>
         </header>
 
         <main className="min-h-0 flex-1 overflow-auto">

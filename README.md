@@ -1,4 +1,4 @@
-# WorkTrack
+# Task Tracker
 
 A minimal, Notion-style work tracker for a small team — projects in a collapsible sidebar, a
 Markdown writing canvas, and tasks you assign to people, shown as a drag-and-drop **board** or a

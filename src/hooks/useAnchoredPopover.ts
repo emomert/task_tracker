@@ -10,7 +10,7 @@ import type { CSSProperties } from 'react'
  * to the available viewport space, re-positions on scroll/resize, and closes on
  * outside-click or Escape.
  */
-export function useAnchoredPopover(align: 'left' | 'right' = 'left') {
+export function useAnchoredPopover(align: 'left' | 'right' = 'left', matchWidth = false) {
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -32,6 +32,7 @@ export function useAnchoredPopover(align: 'left' | 'right' = 'left') {
         position: 'fixed',
         maxHeight: Math.max(140, below ? spaceBelow : spaceAbove),
       }
+      if (matchWidth) style.width = r.width
       if (below) style.top = r.bottom + gap
       else style.bottom = window.innerHeight - r.top + gap
       if (align === 'right') style.right = window.innerWidth - r.right
@@ -48,7 +49,7 @@ export function useAnchoredPopover(align: 'left' | 'right' = 'left') {
       window.removeEventListener('scroll', place, true)
       window.removeEventListener('resize', place)
     }
-  }, [open, align])
+  }, [open, align, matchWidth])
 
   useEffect(() => {
     if (!open) return

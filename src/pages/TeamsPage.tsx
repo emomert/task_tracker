@@ -16,6 +16,7 @@ import { Avatar, displayName } from '../components/ui/Avatar'
 import { LoadingArea } from '../components/ui/Spinner'
 import { ErrorState } from '../components/ui/ErrorState'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { Select } from '../components/ui/Select'
 import { useToast } from '../components/ui/Toast'
 import { PlusIcon, TrashIcon, XIcon } from '../components/ui/Icon'
 
@@ -181,22 +182,24 @@ export function TeamsPage() {
                 </div>
 
                 {isAdmin && nonMembers.length > 0 && (
-                  <div className="mt-3">
-                    <select
-                      className="input-field max-w-xs text-ui"
+                  <div className="mt-3 max-w-xs">
+                    <Select
+                      ariaLabel={`Add a member to ${team.name}`}
                       value=""
-                      aria-label={`Add a member to ${team.name}`}
-                      onChange={(e) => {
-                        if (e.target.value) addMut.mutate({ teamId: team.id, profileId: e.target.value })
+                      placeholder="Add a member…"
+                      onChange={(v) => {
+                        if (v) addMut.mutate({ teamId: team.id, profileId: v })
                       }}
-                    >
-                      <option value="">Add a member…</option>
-                      {nonMembers.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {displayName(p)}
-                        </option>
-                      ))}
-                    </select>
+                      options={nonMembers.map((p) => ({
+                        value: p.id,
+                        label: displayName(p),
+                        icon: (
+                          <span aria-hidden="true" className="text-base leading-none">
+                            {p.emoji || '🙂'}
+                          </span>
+                        ),
+                      }))}
+                    />
                   </div>
                 )}
               </div>

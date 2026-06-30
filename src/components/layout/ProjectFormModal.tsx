@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Modal } from '../ui/Modal'
 import { Spinner } from '../ui/Spinner'
 import { EmojiPicker } from '../ui/EmojiPicker'
+import { Select } from '../ui/Select'
 import { errorMessage } from '../ui/ErrorState'
 import { CheckIcon } from '../ui/Icon'
 import { DEFAULT_PROJECT_EMOJI, PROJECT_COLORS } from '../../lib/constants'
@@ -151,22 +152,16 @@ export function ProjectFormModal({
       </div>
 
       <div className="mt-4">
-        <label htmlFor="project-team" className="field-label mb-1.5">
-          Team
-        </label>
-        <select
-          id="project-team"
-          className="input-field"
+        <label className="field-label mb-1.5">Team</label>
+        <Select
+          ariaLabel="Team"
           value={teamId ?? ''}
-          onChange={(e) => setTeamId(e.target.value || null)}
-        >
-          <option value="">No team (everyone can see it)</option>
-          {teams.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => setTeamId(v || null)}
+          options={[
+            { value: '', label: 'No team (everyone can see it)' },
+            ...teams.map((t) => ({ value: t.id, label: t.name })),
+          ]}
+        />
         <p className="mt-1 text-meta text-muted">
           Only members of the team can see this project.
         </p>

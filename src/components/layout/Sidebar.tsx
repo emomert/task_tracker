@@ -199,7 +199,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
       {/* Brand + collapse toggle */}
       <div className="flex h-12 items-center justify-between px-2.5">
         {!collapsed && (
-          <span className="px-1 text-ui font-semibold tracking-tight text-ink">WorkTrack</span>
+          <span className="px-1 text-ui font-semibold tracking-tight text-ink">Task Tracker</span>
         )}
         <button
           type="button"
