@@ -32,6 +32,8 @@ export interface Project {
   is_archived: boolean
   /** The team this project belongs to (null = visible to everyone). */
   team_id: string | null
+  /** A short blurb shown in the project side panel. */
+  brief: string | null
   description_md: string | null
   sort_order: number
   created_by: string | null
@@ -77,6 +79,7 @@ export interface NewProject {
   emoji?: string
   color?: string
   team_id?: string | null
+  brief?: string | null
   sort_order?: number
   created_by?: string | null
 }
@@ -84,7 +87,14 @@ export interface NewProject {
 export type ProjectPatch = Partial<
   Pick<
     Project,
-    'name' | 'emoji' | 'color' | 'is_archived' | 'team_id' | 'description_md' | 'sort_order'
+    | 'name'
+    | 'emoji'
+    | 'color'
+    | 'is_archived'
+    | 'team_id'
+    | 'brief'
+    | 'description_md'
+    | 'sort_order'
   >
 >
 

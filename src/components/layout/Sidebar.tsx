@@ -28,7 +28,7 @@ import {
   updateProject,
 } from '../../lib/api/projects'
 import { listProfiles } from '../../lib/api/profiles'
-import { listTeamMemberships } from '../../lib/api/teams'
+import { listTeams } from '../../lib/api/teams'
 import type { Project } from '../../types'
 import { Avatar, displayName } from '../ui/Avatar'
 import { Spinner } from '../ui/Spinner'
@@ -50,7 +50,6 @@ import {
   PencilIcon,
   PlusIcon,
   SettingsIcon,
-  ShieldIcon,
   SunIcon,
   TrashIcon,
   UsersIcon,
@@ -74,7 +73,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
 
   const projectsQuery = useQuery({ queryKey: qk.projects, queryFn: listProjects })
   const profilesQuery = useQuery({ queryKey: qk.profiles, queryFn: listProfiles })
-  const membersQuery = useQuery({ queryKey: qk.teamMembers, queryFn: listTeamMemberships })
+  const teamsQuery = useQuery({ queryKey: qk.teams, queryFn: listTeams })
 
   const [createOpen, setCreateOpen] = useState(false)
   const [editing, setEditing] = useState<Project | null>(null)
@@ -85,27 +84,17 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
     () => profilesQuery.data?.find((p) => p.id === user?.id) ?? null,
     [profilesQuery.data, user?.id],
   )
-  const isAdmin = me?.is_admin ?? false
-  const myTeamIds = useMemo(
-    () =>
-      new Set(
-        (membersQuery.data ?? [])
-          .filter((m) => m.profile.id === user?.id)
-          .map((m) => m.team_id),
-      ),
-    [membersQuery.data, user?.id],
-  )
-  // True when the viewer sees a project only because they're an admin (not on its team).
-  const isForeign = (project: Project) =>
-    isAdmin && project.team_id != null && !myTeamIds.has(project.team_id)
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  )
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   const createMut = useMutation({
-    mutationFn: (values: { name: string; emoji: string; color: string; team_id: string | null }) =>
-      createProject(values),
+    mutationFn: (values: {
+      name: string
+      emoji: string
+      color: string
+      team_id: string | null
+      brief: string | null
+    }) => createProject(values),
     onSuccess: (project) => {
       queryClient.invalidateQueries({ queryKey: qk.projects })
       navigate(`/project/${project.id}`)
@@ -119,12 +108,14 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
       emoji: string
       color: string
       team_id: string | null
+      brief: string | null
     }) =>
       updateProject(input.id, {
         name: input.name,
         emoji: input.emoji,
         color: input.color,
         team_id: input.team_id,
+        brief: input.brief,
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.projects }),
   })
@@ -150,26 +141,48 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
   const projects = projectsQuery.data ?? []
   const activeProjects = projects.filter((p) => !p.is_archived)
   const archivedProjects = projects.filter((p) => p.is_archived)
+  const narrow = collapsed && !isDrawer
 
-  async function handleDragEnd(event: DragEndEvent) {
+  // Group active projects under their team (alphabetical; "No team" last).
+  const teamNameById = new Map((teamsQuery.data ?? []).map((t) => [t.id, t.name]))
+  const projectGroups = (() => {
+    const byKey = new Map<string, Project[]>()
+    for (const p of activeProjects) {
+      const key = p.team_id ?? '__none__'
+      const arr = byKey.get(key) ?? []
+      arr.push(p)
+      byKey.set(key, arr)
+    }
+    const groups = [...byKey.entries()].map(([key, list]) => ({
+      key,
+      label: key === '__none__' ? 'No team' : (teamNameById.get(key) ?? 'Team'),
+      projects: list,
+    }))
+    groups.sort((a, b) => {
+      if (a.key === '__none__') return 1
+      if (b.key === '__none__') return -1
+      return a.label.localeCompare(b.label)
+    })
+    return groups
+  })()
+
+  async function handleDragEnd(groupProjects: Project[], event: DragEndEvent) {
     const { active, over } = event
     if (!over || active.id === over.id) return
-
-    const oldIndex = activeProjects.findIndex((p) => p.id === active.id)
-    const newIndex = activeProjects.findIndex((p) => p.id === over.id)
+    const oldIndex = groupProjects.findIndex((p) => p.id === active.id)
+    const newIndex = groupProjects.findIndex((p) => p.id === over.id)
     if (oldIndex < 0 || newIndex < 0) return
 
-    const reordered = arrayMove(activeProjects, oldIndex, newIndex)
+    const reordered = arrayMove(groupProjects, oldIndex, newIndex)
     const moved = reordered[newIndex]
     const before = reordered[newIndex - 1]
     const after = reordered[newIndex + 1]
     const newSortOrder = sortKeyBetween(before?.sort_order ?? null, after?.sort_order ?? null)
 
-    const updatedActive = reordered.map((p) =>
-      p.id === moved.id ? { ...p, sort_order: newSortOrder } : p,
+    // Optimistic: just bump the moved project's sort_order in the cache.
+    queryClient.setQueryData<Project[]>(qk.projects, (prev) =>
+      (prev ?? []).map((p) => (p.id === moved.id ? { ...p, sort_order: newSortOrder } : p)),
     )
-    // Optimistic reorder (active list only), then persist just the moved row.
-    queryClient.setQueryData(qk.projects, [...updatedActive, ...archivedProjects])
     try {
       await setProjectSortOrder(moved.id, newSortOrder)
     } finally {
@@ -204,16 +217,10 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
 
       {/* My Work — the personal dashboard / home */}
       <div className="px-2 pb-1 pt-1">
-        <SidebarLink
-          to="/"
-          end
-          icon={<HomeIcon size={18} />}
-          label="My Work"
-          collapsed={collapsed && !isDrawer}
-        />
+        <SidebarLink to="/" end icon={<HomeIcon size={18} />} label="My Work" collapsed={narrow} />
       </div>
 
-      {/* Projects */}
+      {/* Projects, grouped by team */}
       <nav className="min-h-0 flex-1 overflow-y-auto px-2 pt-1">
         {!collapsed && (
           <div className="flex items-center justify-between px-1 pb-1">
@@ -261,26 +268,38 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
           )
         ) : (
           <>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext
-                items={activeProjects.map((p) => p.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <ul className="space-y-0.5">
-                  {activeProjects.map((project) => (
-                    <SidebarProjectItem
-                      key={project.id}
-                      project={project}
-                      collapsed={collapsed && !isDrawer}
-                      foreign={isForeign(project)}
-                      onEdit={() => setEditing(project)}
-                      onDelete={() => setDeleting(project)}
-                      onArchive={() => archiveMut.mutate({ id: project.id, value: true })}
-                    />
-                  ))}
-                </ul>
-              </SortableContext>
-            </DndContext>
+            {projectGroups.map((group) => (
+              <div key={group.key} className="mb-2">
+                {!narrow && (
+                  <div className="px-1 pb-0.5 text-meta font-medium uppercase tracking-wide text-muted/80">
+                    {group.label}
+                  </div>
+                )}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={(e) => handleDragEnd(group.projects, e)}
+                >
+                  <SortableContext
+                    items={group.projects.map((p) => p.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <ul className="space-y-0.5">
+                      {group.projects.map((project) => (
+                        <SidebarProjectItem
+                          key={project.id}
+                          project={project}
+                          collapsed={narrow}
+                          onEdit={() => setEditing(project)}
+                          onDelete={() => setDeleting(project)}
+                          onArchive={() => archiveMut.mutate({ id: project.id, value: true })}
+                        />
+                      ))}
+                    </ul>
+                  </SortableContext>
+                </DndContext>
+              </div>
+            ))}
 
             {!collapsed && archivedProjects.length > 0 && (
               <div className="mt-2 border-t border-line pt-2">
@@ -326,20 +345,25 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
 
       {/* Secondary nav */}
       <div className="border-t border-line px-2 py-2">
-        <SidebarLink to="/people" icon={<UsersIcon size={18} />} label="People" collapsed={collapsed && !isDrawer} />
-        <SidebarLink to="/teams" icon={<LayersIcon size={18} />} label="Teams" collapsed={collapsed && !isDrawer} />
-        <SidebarLink to="/settings" icon={<SettingsIcon size={18} />} label="Settings" collapsed={collapsed && !isDrawer} />
+        <SidebarLink to="/people" icon={<UsersIcon size={18} />} label="People" collapsed={narrow} />
+        <SidebarLink to="/teams" icon={<LayersIcon size={18} />} label="Teams" collapsed={narrow} />
+        <SidebarLink
+          to="/settings"
+          icon={<SettingsIcon size={18} />}
+          label="Settings"
+          collapsed={narrow}
+        />
       </div>
 
       {/* User footer */}
       <div className="border-t border-line p-2">
-        <div className={`flex items-center gap-2 ${collapsed && !isDrawer ? 'justify-center' : ''}`}>
+        <div className={`flex items-center gap-2 ${narrow ? 'justify-center' : ''}`}>
           {me ? (
             <Avatar profile={me} size="sm" />
           ) : (
             <Avatar profile={{ emoji: '🙂', full_name: null, email: user?.email ?? null }} size="sm" />
           )}
-          {!(collapsed && !isDrawer) && (
+          {!narrow && (
             <>
               <span className="min-w-0 flex-1 truncate text-meta text-muted">
                 {me ? displayName(me) : user?.email}
@@ -383,6 +407,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
         initialEmoji={editing?.emoji}
         initialColor={editing?.color}
         initialTeamId={editing?.team_id}
+        initialBrief={editing?.brief}
         onClose={() => setEditing(null)}
         onSubmit={async (values) => {
           if (editing) await updateMut.mutateAsync({ id: editing.id, ...values })
@@ -392,9 +417,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
         open={deleting != null}
         title="Delete project"
         message={
-          deleting
-            ? `Delete “${deleting.name}” and all of its tasks? This can't be undone.`
-            : ''
+          deleting ? `Delete “${deleting.name}” and all of its tasks? This can't be undone.` : ''
         }
         confirmLabel="Delete project"
         destructive
@@ -430,9 +453,7 @@ function SidebarLink({
         `flex items-center gap-2.5 rounded-md px-2 py-1.5 text-ui transition-colors ${
           collapsed ? 'justify-center' : ''
         } ${
-          isActive
-            ? 'bg-accent-soft font-medium text-accent'
-            : 'text-ink hover:bg-accent-soft/60'
+          isActive ? 'bg-accent-soft font-medium text-accent' : 'text-ink hover:bg-accent-soft/60'
         }`
       }
     >
@@ -445,14 +466,12 @@ function SidebarLink({
 function SidebarProjectItem({
   project,
   collapsed,
-  foreign,
   onEdit,
   onDelete,
   onArchive,
 }: {
   project: Project
   collapsed: boolean
-  foreign: boolean
   onEdit: () => void
   onDelete: () => void
   onArchive: () => void
@@ -474,7 +493,7 @@ function SidebarProjectItem({
         title={collapsed ? `${project.emoji} ${project.name}` : undefined}
         className={({ isActive }) =>
           `flex items-center gap-2 rounded-md py-1.5 pr-1 text-ui transition-colors ${
-            collapsed ? 'justify-center px-0' : 'pl-2'
+            collapsed ? 'justify-center px-0' : 'pl-1.5'
           } ${
             isActive ? 'bg-accent-soft font-medium text-accent' : 'text-ink hover:bg-accent-soft/60'
           }`
@@ -482,33 +501,25 @@ function SidebarProjectItem({
       >
         {!collapsed && (
           <span
+            className={`w-1 shrink-0 self-stretch rounded-full ${projectColor(project.color).dot}`}
+            aria-hidden="true"
+          />
+        )}
+        {!collapsed && (
+          <span
             {...attributes}
             {...listeners}
             onClick={(e) => e.preventDefault()}
-            className="-ml-1 cursor-grab text-muted opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+            className="cursor-grab text-muted opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
             aria-label="Drag to reorder"
           >
             <GripIcon size={14} />
           </span>
         )}
-        {!collapsed && (
-          <span
-            className={`h-2 w-2 shrink-0 rounded-full ${projectColor(project.color).dot}`}
-            aria-hidden="true"
-          />
-        )}
         <span className="text-base leading-none" aria-hidden="true">
           {project.emoji}
         </span>
         {!collapsed && <span className="min-w-0 flex-1 truncate">{project.name}</span>}
-        {!collapsed && foreign && (
-          <span
-            className="shrink-0 text-muted"
-            title="Visible because you're an admin — you're not on this project's team"
-          >
-            <ShieldIcon size={12} />
-          </span>
-        )}
         {!collapsed && (
           <span className="opacity-0 transition-opacity group-hover:opacity-100">
             <Menu ariaLabel={`${project.name} options`} icon={<MoreIcon size={16} />}>
@@ -563,7 +574,7 @@ function ArchivedProjectItem({
       <NavLink
         to={`/project/${project.id}`}
         className={({ isActive }) =>
-          `flex items-center gap-2 rounded-md py-1.5 pl-2 pr-1 text-ui transition-colors ${
+          `flex items-center gap-2 rounded-md py-1.5 pl-1.5 pr-1 text-ui transition-colors ${
             isActive
               ? 'bg-accent-soft font-medium text-accent'
               : 'text-muted hover:bg-accent-soft/60 hover:text-ink'
@@ -571,7 +582,7 @@ function ArchivedProjectItem({
         }
       >
         <span
-          className={`h-2 w-2 shrink-0 rounded-full opacity-60 ${projectColor(project.color).dot}`}
+          className={`w-1 shrink-0 self-stretch rounded-full opacity-60 ${projectColor(project.color).dot}`}
           aria-hidden="true"
         />
         <span className="text-base leading-none opacity-80" aria-hidden="true">

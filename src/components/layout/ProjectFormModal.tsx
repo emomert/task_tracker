@@ -16,11 +16,13 @@ interface ProjectFormModalProps {
   initialEmoji?: string
   initialColor?: string
   initialTeamId?: string | null
+  initialBrief?: string | null
   onSubmit: (values: {
     name: string
     emoji: string
     color: string
     team_id: string | null
+    brief: string | null
   }) => Promise<void>
   onClose: () => void
 }
@@ -32,6 +34,7 @@ export function ProjectFormModal({
   initialEmoji = DEFAULT_PROJECT_EMOJI,
   initialColor = 'neutral',
   initialTeamId = null,
+  initialBrief = null,
   onSubmit,
   onClose,
 }: ProjectFormModalProps) {
@@ -39,6 +42,7 @@ export function ProjectFormModal({
   const [emoji, setEmoji] = useState(initialEmoji)
   const [color, setColor] = useState(initialColor)
   const [teamId, setTeamId] = useState<string | null>(initialTeamId)
+  const [brief, setBrief] = useState(initialBrief ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -52,9 +56,10 @@ export function ProjectFormModal({
       setEmoji(initialEmoji)
       setColor(initialColor)
       setTeamId(initialTeamId)
+      setBrief(initialBrief ?? '')
       setError(null)
     }
-  }, [open, initialName, initialEmoji, initialColor, initialTeamId])
+  }, [open, initialName, initialEmoji, initialColor, initialTeamId, initialBrief])
 
   // A brand-new project defaults to the first available team.
   useEffect(() => {
@@ -72,7 +77,7 @@ export function ProjectFormModal({
     try {
       setBusy(true)
       setError(null)
-      await onSubmit({ name: trimmed, emoji, color, team_id: teamId })
+      await onSubmit({ name: trimmed, emoji, color, team_id: teamId, brief: brief.trim() || null })
       onClose()
     } catch (err) {
       setError(errorMessage(err, "Couldn't save the project."))
@@ -163,8 +168,22 @@ export function ProjectFormModal({
           ))}
         </select>
         <p className="mt-1 text-meta text-muted">
-          Only members of the team (and admins) can see this project.
+          Only members of the team can see this project.
         </p>
+      </div>
+
+      <div className="mt-4">
+        <label htmlFor="project-brief" className="field-label mb-1.5">
+          Brief
+        </label>
+        <textarea
+          id="project-brief"
+          className="input-field min-h-[60px] resize-y"
+          rows={2}
+          value={brief}
+          onChange={(e) => setBrief(e.target.value)}
+          placeholder="A short description, shown in the project's side panel."
+        />
       </div>
 
       {error && <p className="mt-3 text-meta text-priority-high">{error}</p>}

@@ -26,12 +26,22 @@ export function TaskDetailPanel() {
   const [title, setTitle] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
+  const titleRef = useRef<HTMLTextAreaElement>(null)
 
   useFocusTrap(panelRef, !!task, { focusContainer: true })
 
   useEffect(() => {
     if (task) setTitle(task.title)
   }, [task?.id, task?.title])
+
+  // Auto-grow the title so long text wraps to new lines instead of scrolling sideways.
+  useEffect(() => {
+    const el = titleRef.current
+    if (el) {
+      el.style.height = 'auto'
+      el.style.height = `${el.scrollHeight}px`
+    }
+  }, [title])
 
   const close = () => navigate(`/project/${projectId}`)
 
@@ -106,17 +116,19 @@ export function TaskDetailPanel() {
           <>
             {/* Header */}
             <div className="flex items-start gap-2 border-b border-line px-5 py-3">
-              <input
+              <textarea
+                ref={titleRef}
                 value={title}
+                rows={1}
                 onChange={(e) => setTitle(e.target.value)}
                 onBlur={commitTitle}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
-                    ;(e.target as HTMLInputElement).blur()
+                    ;(e.target as HTMLTextAreaElement).blur()
                   }
                 }}
-                className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1 text-title font-semibold text-ink outline-none hover:border-line focus:border-accent focus:ring-2 focus:ring-accent/20"
+                className="min-w-0 flex-1 resize-none overflow-hidden rounded-md border border-transparent bg-transparent px-2 py-1 text-title font-semibold leading-snug text-ink outline-none hover:border-line focus:border-accent focus:ring-2 focus:ring-accent/20"
                 aria-label="Task title"
               />
               <button

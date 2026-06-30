@@ -25,6 +25,7 @@ create table if not exists public.projects (
   emoji          text not null default '📁',
   color          text not null default 'neutral',
   is_archived    boolean not null default false,
+  brief          text,
   description_md text,
   sort_order     double precision not null default 0,
   created_by     uuid references public.profiles(id) on delete set null,
@@ -197,7 +198,7 @@ grant execute on function private.is_team_member(uuid) to authenticated;
 create or replace function private.can_access_project(pid uuid)
 returns boolean language sql security definer stable set search_path = '' as $$
   select coalesce((
-    select p.team_id is null or private.is_admin() or private.is_team_member(p.team_id)
+    select p.team_id is null or private.is_team_member(p.team_id)
     from public.projects p where p.id = pid
   ), false)
 $$;
@@ -234,10 +235,10 @@ drop policy if exists "write projects" on public.projects;
 drop policy if exists "read accessible projects" on public.projects;
 drop policy if exists "write accessible projects" on public.projects;
 create policy "read accessible projects" on public.projects for select to authenticated
-  using (team_id is null or private.is_admin() or private.is_team_member(team_id));
+  using (team_id is null or private.is_team_member(team_id));
 create policy "write accessible projects" on public.projects for all to authenticated
-  using (team_id is null or private.is_admin() or private.is_team_member(team_id))
-  with check (team_id is null or private.is_admin() or private.is_team_member(team_id));
+  using (team_id is null or private.is_team_member(team_id))
+  with check (team_id is null or private.is_team_member(team_id));
 
 drop policy if exists "read tasks" on public.tasks;
 drop policy if exists "write tasks" on public.tasks;
