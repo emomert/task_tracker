@@ -3,14 +3,16 @@ import { Modal } from '../ui/Modal'
 import { Spinner } from '../ui/Spinner'
 import { EmojiPicker } from '../ui/EmojiPicker'
 import { errorMessage } from '../ui/ErrorState'
-import { DEFAULT_PROJECT_EMOJI } from '../../lib/constants'
+import { CheckIcon } from '../ui/Icon'
+import { DEFAULT_PROJECT_EMOJI, PROJECT_COLORS } from '../../lib/constants'
 
 interface ProjectFormModalProps {
   open: boolean
   mode: 'create' | 'edit'
   initialName?: string
   initialEmoji?: string
-  onSubmit: (values: { name: string; emoji: string }) => Promise<void>
+  initialColor?: string
+  onSubmit: (values: { name: string; emoji: string; color: string }) => Promise<void>
   onClose: () => void
 }
 
@@ -19,11 +21,13 @@ export function ProjectFormModal({
   mode,
   initialName = '',
   initialEmoji = DEFAULT_PROJECT_EMOJI,
+  initialColor = 'neutral',
   onSubmit,
   onClose,
 }: ProjectFormModalProps) {
   const [name, setName] = useState(initialName)
   const [emoji, setEmoji] = useState(initialEmoji)
+  const [color, setColor] = useState(initialColor)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -32,9 +36,10 @@ export function ProjectFormModal({
     if (open) {
       setName(initialName)
       setEmoji(initialEmoji)
+      setColor(initialColor)
       setError(null)
     }
-  }, [open, initialName, initialEmoji])
+  }, [open, initialName, initialEmoji, initialColor])
 
   async function handleSubmit() {
     const trimmed = name.trim()
@@ -45,7 +50,7 @@ export function ProjectFormModal({
     try {
       setBusy(true)
       setError(null)
-      await onSubmit({ name: trimmed, emoji })
+      await onSubmit({ name: trimmed, emoji, color })
       onClose()
     } catch (err) {
       setError(errorMessage(err, "Couldn't save the project."))
@@ -96,6 +101,28 @@ export function ProjectFormModal({
           />
         </div>
       </div>
+
+      <div className="mt-4">
+        <label className="field-label mb-1.5">Color</label>
+        <div className="flex flex-wrap gap-2">
+          {PROJECT_COLORS.map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              onClick={() => setColor(c.key)}
+              aria-label={c.label}
+              aria-pressed={color === c.key}
+              title={c.label}
+              className={`flex h-7 w-7 items-center justify-center rounded-full text-white transition-transform hover:scale-110 active:scale-95 ${c.dot} ${
+                color === c.key ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface' : ''
+              }`}
+            >
+              {color === c.key && <CheckIcon size={14} />}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {error && <p className="mt-3 text-meta text-priority-high">{error}</p>}
     </Modal>
   )

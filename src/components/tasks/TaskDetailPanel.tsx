@@ -6,6 +6,7 @@ import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { StatusSelect } from './StatusSelect'
 import { PrioritySelect } from './PrioritySelect'
 import { AssigneePicker } from './AssigneePicker'
+import { DatePicker } from '../ui/DatePicker'
 import { LoadingArea } from '../ui/Spinner'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { TrashIcon, XIcon } from '../ui/Icon'
@@ -147,11 +148,10 @@ export function TaskDetailPanel() {
 
                 <dt className="text-meta text-muted">Due date</dt>
                 <dd>
-                  <input
-                    type="date"
-                    value={task.due_date ?? ''}
-                    onChange={(e) => patch(task.id, { due_date: e.target.value || null })}
-                    className="rounded-md border border-line bg-surface px-2 py-1 text-ui text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  <DatePicker
+                    value={task.due_date}
+                    onChange={(date) => patch(task.id, { due_date: date })}
+                    ariaLabel="Set due date"
                   />
                 </dd>
 

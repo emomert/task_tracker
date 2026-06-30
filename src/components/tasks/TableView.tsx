@@ -82,7 +82,7 @@ export function TableView({ tasks, onOpenTask, onPatch, onAssign, onAddTask }: T
   }, [tasks, sortKey, sortDir])
 
   return (
-    <div className="overflow-x-auto">
+    <div className="max-w-4xl overflow-x-auto">
       <table className="w-full border-collapse text-ui">
         <thead>
           <tr className="border-b border-line text-left text-meta text-muted">
@@ -103,7 +103,7 @@ export function TableView({ tasks, onOpenTask, onPatch, onAssign, onAddTask }: T
         <tbody>
           {sorted.map((task) => (
             <tr key={task.id} className="border-b border-line transition-colors hover:bg-accent-soft/40">
-              <td className="py-1.5 pr-3">
+              <td className="py-1 pr-3">
                 <button
                   type="button"
                   onClick={() => onOpenTask(task.id)}
@@ -112,25 +112,25 @@ export function TableView({ tasks, onOpenTask, onPatch, onAssign, onAddTask }: T
                   {task.title}
                 </button>
               </td>
-              <td className="py-1.5 pr-3">
+              <td className="py-1 pr-3">
                 <StatusSelect value={task.status} onChange={(status) => onPatch(task.id, { status })} />
               </td>
-              <td className="hidden py-1.5 pr-3 md:table-cell">
+              <td className="hidden py-1 pr-3 md:table-cell">
                 <AssigneePicker
                   value={task.assignees}
                   onChange={(people) => onAssign(task.id, people)}
                 />
               </td>
-              <td className="py-1.5 pr-3">
+              <td className="py-1 pr-3">
                 <DueDate date={task.due_date} done={task.status === 'done'} emptyText="—" />
               </td>
-              <td className="py-1.5 pr-3">
+              <td className="py-1 pr-3">
                 <PrioritySelect
                   value={task.priority}
                   onChange={(priority) => onPatch(task.id, { priority })}
                 />
               </td>
-              <td className="hidden py-1.5 pr-3 text-meta text-muted lg:table-cell">
+              <td className="hidden py-1 pr-3 text-meta text-muted lg:table-cell">
                 {format(parseISO(task.updated_at), 'MMM d')}
               </td>
             </tr>

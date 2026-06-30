@@ -158,6 +158,13 @@ export const FolderIcon = (p: IconProps) => (
   </Base>
 )
 
+export const ArchiveIcon = (p: IconProps) => (
+  <Base {...p}>
+    <rect x="3" y="4" width="18" height="4" rx="1" />
+    <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4" />
+  </Base>
+)
+
 export const HomeIcon = (p: IconProps) => (
   <Base {...p}>
     <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />

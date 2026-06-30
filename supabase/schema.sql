@@ -23,6 +23,8 @@ create table if not exists public.projects (
   id             uuid primary key default gen_random_uuid(),
   name           text not null,
   emoji          text not null default '📁',
+  color          text not null default 'neutral',
+  is_archived    boolean not null default false,
   description_md text,
   sort_order     double precision not null default 0,
   created_by     uuid references public.profiles(id) on delete set null,

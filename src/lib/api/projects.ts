@@ -41,6 +41,7 @@ async function maxProjectSortOrder(): Promise<number | null> {
 export async function createProject(input: {
   name: string
   emoji?: string
+  color?: string
 }): Promise<Project> {
   const sort_order = sortKeyAfterMax(await maxProjectSortOrder())
   const { data: auth } = await supabase.auth.getUser()
@@ -50,6 +51,7 @@ export async function createProject(input: {
     .insert({
       name: input.name,
       emoji: input.emoji ?? DEFAULT_PROJECT_EMOJI,
+      color: input.color ?? 'neutral',
       sort_order,
       created_by: auth.user?.id ?? null,
     })

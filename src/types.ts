@@ -20,6 +20,9 @@ export interface Project {
   id: string
   name: string
   emoji: string
+  /** A palette key (see PROJECT_COLORS in constants). */
+  color: string
+  is_archived: boolean
   description_md: string | null
   sort_order: number
   created_by: string | null
@@ -63,12 +66,13 @@ export interface MyTask extends TaskWithAssignees {
 export interface NewProject {
   name: string
   emoji?: string
+  color?: string
   sort_order?: number
   created_by?: string | null
 }
 
 export type ProjectPatch = Partial<
-  Pick<Project, 'name' | 'emoji' | 'description_md' | 'sort_order'>
+  Pick<Project, 'name' | 'emoji' | 'color' | 'is_archived' | 'description_md' | 'sort_order'>
 >
 
 export interface NewTask {

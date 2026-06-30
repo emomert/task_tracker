@@ -36,7 +36,10 @@ import { useToast } from '../ui/Toast'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { ProjectFormModal } from './ProjectFormModal'
 import {
+  ArchiveIcon,
+  ChevronDownIcon,
   ChevronLeftIcon,
+  ChevronRightIcon,
   GripIcon,
   HomeIcon,
   LogOutIcon,
@@ -50,6 +53,7 @@ import {
   UsersIcon,
 } from '../ui/Icon'
 import { useTheme } from '../../theme/ThemeContext'
+import { projectColor } from '../../lib/constants'
 
 interface SidebarProps {
   collapsed: boolean
@@ -71,6 +75,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
   const [createOpen, setCreateOpen] = useState(false)
   const [editing, setEditing] = useState<Project | null>(null)
   const [deleting, setDeleting] = useState<Project | null>(null)
+  const [showArchived, setShowArchived] = useState(false)
 
   const me = useMemo(
     () => profilesQuery.data?.find((p) => p.id === user?.id) ?? null,
@@ -82,7 +87,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
   )
 
   const createMut = useMutation({
-    mutationFn: (values: { name: string; emoji: string }) => createProject(values),
+    mutationFn: (values: { name: string; emoji: string; color: string }) => createProject(values),
     onSuccess: (project) => {
       queryClient.invalidateQueries({ queryKey: qk.projects })
       navigate(`/project/${project.id}`)
@@ -90,9 +95,17 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
   })
 
   const updateMut = useMutation({
-    mutationFn: (input: { id: string; name: string; emoji: string }) =>
-      updateProject(input.id, { name: input.name, emoji: input.emoji }),
+    mutationFn: (input: { id: string; name: string; emoji: string; color: string }) =>
+      updateProject(input.id, { name: input.name, emoji: input.emoji, color: input.color }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.projects }),
+  })
+
+  const archiveMut = useMutation({
+    mutationFn: ({ id, value }: { id: string; value: boolean }) =>
+      updateProject(id, { is_archived: value }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.projects }),
+    onError: () =>
+      notify("Couldn't update the project. Check your connection and try again.", 'error'),
   })
 
   const deleteMut = useMutation({
@@ -106,26 +119,28 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
   })
 
   const projects = projectsQuery.data ?? []
+  const activeProjects = projects.filter((p) => !p.is_archived)
+  const archivedProjects = projects.filter((p) => p.is_archived)
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (!over || active.id === over.id) return
 
-    const oldIndex = projects.findIndex((p) => p.id === active.id)
-    const newIndex = projects.findIndex((p) => p.id === over.id)
+    const oldIndex = activeProjects.findIndex((p) => p.id === active.id)
+    const newIndex = activeProjects.findIndex((p) => p.id === over.id)
     if (oldIndex < 0 || newIndex < 0) return
 
-    const reordered = arrayMove(projects, oldIndex, newIndex)
+    const reordered = arrayMove(activeProjects, oldIndex, newIndex)
     const moved = reordered[newIndex]
     const before = reordered[newIndex - 1]
     const after = reordered[newIndex + 1]
     const newSortOrder = sortKeyBetween(before?.sort_order ?? null, after?.sort_order ?? null)
 
-    const updated = reordered.map((p) =>
+    const updatedActive = reordered.map((p) =>
       p.id === moved.id ? { ...p, sort_order: newSortOrder } : p,
     )
-    // Optimistic reorder, then persist just the moved row.
-    queryClient.setQueryData(qk.projects, updated)
+    // Optimistic reorder (active list only), then persist just the moved row.
+    queryClient.setQueryData(qk.projects, [...updatedActive, ...archivedProjects])
     try {
       await setProjectSortOrder(moved.id, newSortOrder)
     } finally {
@@ -216,21 +231,54 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
             </button>
           )
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={projects.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-              <ul className="space-y-0.5">
-                {projects.map((project) => (
-                  <SidebarProjectItem
-                    key={project.id}
-                    project={project}
-                    collapsed={collapsed && !isDrawer}
-                    onEdit={() => setEditing(project)}
-                    onDelete={() => setDeleting(project)}
-                  />
-                ))}
-              </ul>
-            </SortableContext>
-          </DndContext>
+          <>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext
+                items={activeProjects.map((p) => p.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <ul className="space-y-0.5">
+                  {activeProjects.map((project) => (
+                    <SidebarProjectItem
+                      key={project.id}
+                      project={project}
+                      collapsed={collapsed && !isDrawer}
+                      onEdit={() => setEditing(project)}
+                      onDelete={() => setDeleting(project)}
+                      onArchive={() => archiveMut.mutate({ id: project.id, value: true })}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
+
+            {!collapsed && archivedProjects.length > 0 && (
+              <div className="mt-2 border-t border-line pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowArchived((s) => !s)}
+                  className="flex w-full items-center gap-1 rounded-md px-1 py-1 text-meta font-medium uppercase tracking-wide text-muted transition-colors hover:text-ink"
+                  aria-expanded={showArchived}
+                >
+                  {showArchived ? <ChevronDownIcon size={13} /> : <ChevronRightIcon size={13} />}
+                  Archived
+                  <span className="ml-0.5 normal-case">({archivedProjects.length})</span>
+                </button>
+                {showArchived && (
+                  <ul className="mt-0.5 space-y-0.5">
+                    {archivedProjects.map((project) => (
+                      <ArchivedProjectItem
+                        key={project.id}
+                        project={project}
+                        onUnarchive={() => archiveMut.mutate({ id: project.id, value: false })}
+                        onDelete={() => setDeleting(project)}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         {collapsed && !isDrawer && (
@@ -302,6 +350,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
         mode="edit"
         initialName={editing?.name}
         initialEmoji={editing?.emoji}
+        initialColor={editing?.color}
         onClose={() => setEditing(null)}
         onSubmit={async (values) => {
           if (editing) await updateMut.mutateAsync({ id: editing.id, ...values })
@@ -366,11 +415,13 @@ function SidebarProjectItem({
   collapsed,
   onEdit,
   onDelete,
+  onArchive,
 }: {
   project: Project
   collapsed: boolean
   onEdit: () => void
   onDelete: () => void
+  onArchive: () => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: project.id,
@@ -406,6 +457,12 @@ function SidebarProjectItem({
             <GripIcon size={14} />
           </span>
         )}
+        {!collapsed && (
+          <span
+            className={`h-2 w-2 shrink-0 rounded-full ${projectColor(project.color).dot}`}
+            aria-hidden="true"
+          />
+        )}
         <span className="text-base leading-none" aria-hidden="true">
           {project.emoji}
         </span>
@@ -421,7 +478,15 @@ function SidebarProjectItem({
                       onEdit()
                     }}
                   >
-                    <PencilIcon size={15} /> Rename &amp; emoji
+                    <PencilIcon size={15} /> Project settings
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      close()
+                      onArchive()
+                    }}
+                  >
+                    <ArchiveIcon size={15} /> Archive
                   </MenuItem>
                   <MenuItem
                     destructive
@@ -437,6 +502,65 @@ function SidebarProjectItem({
             </Menu>
           </span>
         )}
+      </NavLink>
+    </li>
+  )
+}
+
+function ArchivedProjectItem({
+  project,
+  onUnarchive,
+  onDelete,
+}: {
+  project: Project
+  onUnarchive: () => void
+  onDelete: () => void
+}) {
+  return (
+    <li className="group relative">
+      <NavLink
+        to={`/project/${project.id}`}
+        className={({ isActive }) =>
+          `flex items-center gap-2 rounded-md py-1.5 pl-2 pr-1 text-ui transition-colors ${
+            isActive
+              ? 'bg-accent-soft font-medium text-accent'
+              : 'text-muted hover:bg-accent-soft/60 hover:text-ink'
+          }`
+        }
+      >
+        <span
+          className={`h-2 w-2 shrink-0 rounded-full opacity-60 ${projectColor(project.color).dot}`}
+          aria-hidden="true"
+        />
+        <span className="text-base leading-none opacity-80" aria-hidden="true">
+          {project.emoji}
+        </span>
+        <span className="min-w-0 flex-1 truncate">{project.name}</span>
+        <span className="opacity-0 transition-opacity group-hover:opacity-100">
+          <Menu ariaLabel={`${project.name} options`} icon={<MoreIcon size={16} />}>
+            {(close) => (
+              <>
+                <MenuItem
+                  onClick={() => {
+                    close()
+                    onUnarchive()
+                  }}
+                >
+                  <ArchiveIcon size={15} /> Unarchive
+                </MenuItem>
+                <MenuItem
+                  destructive
+                  onClick={() => {
+                    close()
+                    onDelete()
+                  }}
+                >
+                  <TrashIcon size={15} /> Delete
+                </MenuItem>
+              </>
+            )}
+          </Menu>
+        </span>
       </NavLink>
     </li>
   )

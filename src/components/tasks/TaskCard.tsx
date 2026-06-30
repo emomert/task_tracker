@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { TaskWithAssignees } from '../../types'
-import { AvatarStack } from '../ui/Avatar'
+import { AssigneeChips } from '../ui/AssigneeChips'
 import { DueDate } from '../ui/DueDate'
 import { PriorityMarker } from '../ui/PriorityMarker'
 
@@ -14,7 +14,8 @@ export function TaskCardContent({
   task: TaskWithAssignees
   dragging?: boolean
 }) {
-  const hasMeta = task.priority || task.due_date || task.assignees.length > 0
+  const hasTop = task.priority || task.due_date
+  const hasAssignees = task.assignees.length > 0
   return (
     <div
       className={`rounded-card border border-line bg-surface p-3 transition-shadow ${
@@ -22,13 +23,15 @@ export function TaskCardContent({
       }`}
     >
       <div className="text-ui leading-snug text-ink">{task.title}</div>
-      {hasMeta && (
-        <div className="mt-2.5 flex items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2">
-            <PriorityMarker priority={task.priority} variant="dot" />
-            <DueDate date={task.due_date} done={task.status === 'done'} withIcon />
-          </div>
-          <AvatarStack people={task.assignees} size="sm" max={3} />
+      {(hasTop || hasAssignees) && (
+        <div className="mt-2.5 space-y-2">
+          {hasTop && (
+            <div className="flex items-center gap-2">
+              <PriorityMarker priority={task.priority} variant="dot" />
+              <DueDate date={task.due_date} done={task.status === 'done'} withIcon />
+            </div>
+          )}
+          {hasAssignees && <AssigneeChips people={task.assignees} max={3} />}
         </div>
       )}
     </div>

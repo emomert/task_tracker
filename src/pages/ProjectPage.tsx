@@ -11,7 +11,10 @@ import { ErrorState } from '../components/ui/ErrorState'
 import { BoardIcon, TableIcon, PencilIcon } from '../components/ui/Icon'
 import { BoardView } from '../components/tasks/BoardView'
 import { TableView } from '../components/tasks/TableView'
+import { ProjectSidePanel } from '../components/tasks/ProjectSidePanel'
+import { ProjectFormModal } from '../components/layout/ProjectFormModal'
 import { useToast } from '../components/ui/Toast'
+import { projectColor } from '../lib/constants'
 
 // Code-split the heavy BlockNote editor out of the initial bundle.
 const MarkdownDocEditor = lazy(() =>
@@ -37,12 +40,13 @@ export function ProjectPage() {
 
   const tasks = useProjectTasks(id)
 
-  const [view, setView] = useState<View>('board')
+  const [view, setView] = useState<View>('table')
   const [name, setName] = useState('')
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
-  // Board is the default whenever you open a different project.
+  // Table is the default whenever you open a different project.
   useEffect(() => {
-    setView('board')
+    setView('table')
   }, [id])
 
   useEffect(() => {
@@ -99,6 +103,10 @@ export function ProjectPage() {
           ariaLabel="Project emoji"
         />
         <div className="group flex min-w-0 flex-1 items-center gap-1.5">
+          <span
+            className={`h-2.5 w-2.5 shrink-0 rounded-full ${projectColor(project.color).dot}`}
+            aria-hidden="true"
+          />
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -117,42 +125,65 @@ export function ProjectPage() {
         <ViewToggle view={view} onChange={setView} />
       </div>
 
-      {/* Content */}
-      <div className="min-h-0 flex-1 overflow-auto px-6 pb-8 md:px-8">
-        {tasks.isError ? (
-          <ErrorState onRetry={() => tasks.refetch()} />
-        ) : tasks.isLoading && view !== 'notes' ? (
-          <LoadingArea />
-        ) : view === 'board' ? (
-          <BoardView
+      {/* Content + context panel */}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-auto px-6 pb-8 md:px-8">
+          {tasks.isError ? (
+            <ErrorState onRetry={() => tasks.refetch()} />
+          ) : tasks.isLoading && view !== 'notes' ? (
+            <LoadingArea />
+          ) : view === 'board' ? (
+            <BoardView
+              tasks={tasks.tasks}
+              onOpenTask={openTask}
+              onAddTask={(title, status: TaskStatus) => tasks.create({ title, status })}
+              onMove={tasks.move}
+            />
+          ) : view === 'table' ? (
+            <TableView
+              tasks={tasks.tasks}
+              onOpenTask={openTask}
+              onPatch={tasks.patch}
+              onAssign={tasks.assign}
+              onAddTask={(title) => tasks.create({ title })}
+            />
+          ) : (
+            <div className="mx-auto max-w-canvas">
+              <Suspense fallback={<LoadingArea label="Loading editor" />}>
+                <MarkdownDocEditor
+                  key={project.id}
+                  initialMarkdown={project.description_md ?? ''}
+                  onSave={(md) => updateMut.mutateAsync({ description_md: md }).then(() => undefined)}
+                />
+              </Suspense>
+            </div>
+          )}
+        </div>
+
+        {view !== 'notes' && (
+          <ProjectSidePanel
+            project={project}
             tasks={tasks.tasks}
-            onOpenTask={openTask}
-            onAddTask={(title, status: TaskStatus) => tasks.create({ title, status })}
-            onMove={tasks.move}
+            onEdit={() => setSettingsOpen(true)}
+            onArchive={() => updateMut.mutate({ is_archived: !project.is_archived })}
           />
-        ) : view === 'table' ? (
-          <TableView
-            tasks={tasks.tasks}
-            onOpenTask={openTask}
-            onPatch={tasks.patch}
-            onAssign={tasks.assign}
-            onAddTask={(title) => tasks.create({ title })}
-          />
-        ) : (
-          <div className="mx-auto max-w-canvas">
-            <Suspense fallback={<LoadingArea label="Loading editor" />}>
-              <MarkdownDocEditor
-                key={project.id}
-                initialMarkdown={project.description_md ?? ''}
-                onSave={(md) => updateMut.mutateAsync({ description_md: md }).then(() => undefined)}
-              />
-            </Suspense>
-          </div>
         )}
       </div>
 
       {/* Task detail overlay */}
       <Outlet />
+
+      <ProjectFormModal
+        open={settingsOpen}
+        mode="edit"
+        initialName={project.name}
+        initialEmoji={project.emoji}
+        initialColor={project.color}
+        onClose={() => setSettingsOpen(false)}
+        onSubmit={async (values) => {
+          await updateMut.mutateAsync(values)
+        }}
+      />
     </div>
   )
 }

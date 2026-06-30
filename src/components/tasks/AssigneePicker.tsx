@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Popover } from '../ui/Popover'
-import { Avatar, AvatarStack, displayName } from '../ui/Avatar'
+import { Avatar, displayName } from '../ui/Avatar'
+import { AssigneeChips } from '../ui/AssigneeChips'
 import { CheckIcon } from '../ui/Icon'
 import { Spinner } from '../ui/Spinner'
 import { qk } from '../../lib/queryClient'
@@ -41,13 +42,7 @@ export function AssigneePicker({ value, onChange, placeholder = 'Assign…' }: A
       ariaLabel="Assign people"
       panelClassName="w-60"
       buttonClassName="inline-flex min-h-[28px] items-center gap-1 rounded-md border border-transparent px-2 py-1 text-ui transition-colors hover:border-line hover:bg-paper"
-      button={
-        value.length > 0 ? (
-          <AvatarStack people={value} size="sm" max={4} />
-        ) : (
-          <span className="text-meta text-muted">{placeholder}</span>
-        )
-      }
+      button={<AssigneeChips people={value} max={4} placeholder={placeholder} />}
     >
       {() => {
         if (peopleQuery.isLoading) {
