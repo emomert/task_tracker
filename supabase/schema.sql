@@ -267,3 +267,43 @@ create policy "write accessible task_assignees" on public.task_assignees for all
 --     where t.name = 'General' on conflict do nothing;
 --   update public.projects set team_id = (select id from public.teams where name='General' limit 1)
 --     where team_id is null;
+
+-- ============================================================
+-- Subtasks (checklist) + Comments (feature batch 3).
+-- Both inherit access from the parent task (private.can_access_task).
+-- ============================================================
+create table if not exists public.subtasks (
+  id         uuid primary key default gen_random_uuid(),
+  task_id    uuid not null references public.tasks(id) on delete cascade,
+  title      text not null,
+  is_done    boolean not null default false,
+  sort_order double precision not null default 0,
+  created_at timestamptz not null default now()
+);
+create index if not exists subtasks_task_idx on public.subtasks(task_id);
+alter table public.subtasks enable row level security;
+drop policy if exists "read accessible subtasks" on public.subtasks;
+create policy "read accessible subtasks" on public.subtasks for select to authenticated
+  using (private.can_access_task(task_id));
+drop policy if exists "write accessible subtasks" on public.subtasks;
+create policy "write accessible subtasks" on public.subtasks for all to authenticated
+  using (private.can_access_task(task_id)) with check (private.can_access_task(task_id));
+
+create table if not exists public.comments (
+  id         uuid primary key default gen_random_uuid(),
+  task_id    uuid not null references public.tasks(id) on delete cascade,
+  author_id  uuid references public.profiles(id) on delete set null,
+  body       text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists comments_task_idx on public.comments(task_id);
+alter table public.comments enable row level security;
+drop policy if exists "read accessible comments" on public.comments;
+create policy "read accessible comments" on public.comments for select to authenticated
+  using (private.can_access_task(task_id));
+drop policy if exists "insert own comments" on public.comments;
+create policy "insert own comments" on public.comments for insert to authenticated
+  with check (private.can_access_task(task_id) and author_id = (select auth.uid()));
+drop policy if exists "delete own comments" on public.comments;
+create policy "delete own comments" on public.comments for delete to authenticated
+  using (author_id = (select auth.uid()) or private.is_admin());

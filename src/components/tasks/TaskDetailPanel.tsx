@@ -6,6 +6,8 @@ import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { StatusSelect } from './StatusSelect'
 import { PrioritySelect } from './PrioritySelect'
 import { AssigneePicker } from './AssigneePicker'
+import { SubtaskList } from './SubtaskList'
+import { CommentThread } from './CommentThread'
 import { DatePicker } from '../ui/DatePicker'
 import { LoadingArea } from '../ui/Spinner'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
@@ -183,9 +185,11 @@ export function TaskDetailPanel() {
               </div>
 
               <hr className="my-4 border-line" />
+              <SubtaskList taskId={task.id} />
 
+              <hr className="my-4 border-line" />
               {/* Markdown document */}
-              <div className="min-h-[240px] flex-1">
+              <div className="min-h-[200px]">
                 <Suspense fallback={<LoadingArea label="Loading editor" />}>
                   <MarkdownDocEditor
                     key={task.id}
@@ -194,6 +198,9 @@ export function TaskDetailPanel() {
                   />
                 </Suspense>
               </div>
+
+              <hr className="my-4 border-line" />
+              <CommentThread taskId={task.id} />
             </div>
 
             {/* Footer */}

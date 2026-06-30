@@ -50,6 +50,7 @@ export function BoardView({ tasks, onOpenTask, onAddTask, onMove }: BoardViewPro
   const [columns, setColumns] = useState<Columns>(() => groupByStatus(tasks))
   const [activeId, setActiveId] = useState<string | null>(null)
   const dragging = useRef(false)
+  const fromRef = useRef<TaskStatus | null>(null)
 
   // Adopt server state whenever we're not mid-drag.
   useEffect(() => {
@@ -80,6 +81,7 @@ export function BoardView({ tasks, onOpenTask, onAddTask, onMove }: BoardViewPro
 
   function handleDragStart(event: DragStartEvent) {
     dragging.current = true
+    fromRef.current = findContainer(String(event.active.id))
     setActiveId(String(event.active.id))
   }
 
@@ -110,6 +112,8 @@ export function BoardView({ tasks, onOpenTask, onAddTask, onMove }: BoardViewPro
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     dragging.current = false
+    const from = fromRef.current
+    fromRef.current = null
     setActiveId(null)
     if (!over) {
       setColumns(groupByStatus(tasks))
@@ -125,15 +129,18 @@ export function BoardView({ tasks, onOpenTask, onAddTask, onMove }: BoardViewPro
     }
 
     const items = columns[to]
-    const oldIndex = items.findIndex((t) => t.id === id)
-    const overIndex = isStatusId(overId)
-      ? items.length - 1
-      : items.findIndex((t) => t.id === overId)
-
-    const ordered =
-      oldIndex >= 0 && overIndex >= 0 && oldIndex !== overIndex
-        ? arrayMove(items, oldIndex, overIndex)
-        : items
+    // Cross-column moves were already placed by handleDragOver, so only a
+    // same-column reorder needs the move applied here (avoids a double-move).
+    let ordered = items
+    if (from === to) {
+      const oldIndex = items.findIndex((t) => t.id === id)
+      const overIndex = isStatusId(overId)
+        ? items.length - 1
+        : items.findIndex((t) => t.id === overId)
+      if (oldIndex >= 0 && overIndex >= 0 && oldIndex !== overIndex) {
+        ordered = arrayMove(items, oldIndex, overIndex)
+      }
+    }
 
     const idx = ordered.findIndex((t) => t.id === id)
     if (idx < 0) {

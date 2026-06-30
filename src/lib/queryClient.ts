@@ -22,4 +22,6 @@ export const qk = {
   myTasks: (userId: string) => ['my-tasks', userId] as const,
   teams: ['teams'] as const,
   teamMembers: ['team-members'] as const,
+  subtasks: (taskId: string) => ['subtasks', taskId] as const,
+  comments: (taskId: string) => ['comments', taskId] as const,
 }

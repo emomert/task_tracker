@@ -62,6 +62,27 @@ export interface TaskAssignee {
   assigned_at: string
 }
 
+export interface Subtask {
+  id: string
+  task_id: string
+  title: string
+  is_done: boolean
+  sort_order: number
+  created_at: string
+}
+
+export interface Comment {
+  id: string
+  task_id: string
+  author_id: string | null
+  body: string
+  created_at: string
+}
+
+export interface CommentWithAuthor extends Comment {
+  author: Profile | null
+}
+
 /** A task plus its resolved assignee profiles (the shape the UI works with). */
 export interface TaskWithAssignees extends Task {
   assignees: Profile[]
