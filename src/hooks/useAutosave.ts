@@ -54,11 +54,16 @@ export function useAutosave(
           setStatusSafe('error')
           // Keep the value for retry unless something newer already arrived.
           if (pending.current === null) pending.current = value
-          if (retryTimer.current) clearTimeout(retryTimer.current)
-          retryTimer.current = setTimeout(() => {
-            retryTimer.current = null
-            void pumpRef.current()
-          }, 4000)
+          // Only schedule a retry while mounted. The unmount flush is a single
+          // best-effort attempt, so a save that can't succeed (e.g. the row was
+          // just deleted) never becomes an endless background retry loop.
+          if (mounted.current) {
+            if (retryTimer.current) clearTimeout(retryTimer.current)
+            retryTimer.current = setTimeout(() => {
+              retryTimer.current = null
+              void pumpRef.current()
+            }, 4000)
+          }
           return
         }
       }

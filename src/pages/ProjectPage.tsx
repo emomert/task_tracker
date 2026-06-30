@@ -11,6 +11,7 @@ import { ErrorState } from '../components/ui/ErrorState'
 import { BoardIcon, TableIcon, PencilIcon } from '../components/ui/Icon'
 import { BoardView } from '../components/tasks/BoardView'
 import { TableView } from '../components/tasks/TableView'
+import { useToast } from '../components/ui/Toast'
 
 // Code-split the heavy BlockNote editor out of the initial bundle.
 const MarkdownDocEditor = lazy(() =>
@@ -26,6 +27,7 @@ export function ProjectPage() {
   const id = projectId ?? ''
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { notify } = useToast()
 
   const projectQuery = useQuery({
     queryKey: qk.project(id),
@@ -52,6 +54,11 @@ export function ProjectPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.project(id) })
       queryClient.invalidateQueries({ queryKey: qk.projects })
+    },
+    onError: () => {
+      notify("Couldn't save the project change. Check your connection and try again.", 'error')
+      // Re-sync the inline name field with the canonical value.
+      if (projectQuery.data) setName(projectQuery.data.name)
     },
   })
 

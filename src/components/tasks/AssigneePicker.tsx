@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Popover } from '../ui/Popover'
 import { Avatar, AvatarStack, displayName } from '../ui/Avatar'
@@ -18,18 +19,27 @@ export function AssigneePicker({ value, onChange, placeholder = 'Assign…' }: A
   const peopleQuery = useQuery({ queryKey: qk.profiles, queryFn: listProfiles })
   const selected = new Set(value.map((v) => v.id))
 
+  // Track the latest selection in a ref and advance it on every toggle, so two
+  // quick clicks (before the optimistic update flows back into `value`) don't
+  // each compute from a stale list and clobber one another's pick.
+  const valueRef = useRef(value)
+  useEffect(() => {
+    valueRef.current = value
+  }, [value])
+
   function toggle(person: Profile) {
-    if (selected.has(person.id)) {
-      onChange(value.filter((v) => v.id !== person.id))
-    } else {
-      onChange([...value, person])
-    }
+    const current = valueRef.current
+    const next = current.some((v) => v.id === person.id)
+      ? current.filter((v) => v.id !== person.id)
+      : [...current, person]
+    valueRef.current = next
+    onChange(next)
   }
 
   return (
     <Popover
       ariaLabel="Assign people"
-      panelClassName="w-60 max-h-72 overflow-y-auto"
+      panelClassName="w-60"
       buttonClassName="inline-flex min-h-[28px] items-center gap-1 rounded-md border border-transparent px-2 py-1 text-ui transition-colors hover:border-line hover:bg-paper"
       button={
         value.length > 0 ? (
@@ -45,6 +55,13 @@ export function AssigneePicker({ value, onChange, placeholder = 'Assign…' }: A
             <div className="flex justify-center py-3">
               <Spinner size={16} />
             </div>
+          )
+        }
+        if (peopleQuery.isError) {
+          return (
+            <p className="px-3 py-2 text-meta text-priority-high">
+              Couldn't load people. Try again.
+            </p>
           )
         }
         const people = peopleQuery.data ?? []

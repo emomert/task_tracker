@@ -60,7 +60,11 @@ export function TableView({ tasks, onOpenTask, onPatch, onAssign, onAddTask }: T
           cmp = STATUS_ORDER[a.status] - STATUS_ORDER[b.status]
           break
         case 'priority':
-          cmp = priorityRank(a.priority) - priorityRank(b.priority)
+          // Nulls (no priority) last regardless of direction, like the Due column.
+          if (!a.priority && !b.priority) cmp = 0
+          else if (!a.priority) return 1
+          else if (!b.priority) return -1
+          else cmp = priorityRank(a.priority) - priorityRank(b.priority)
           break
         case 'due_date':
           // Nulls last regardless of direction.

@@ -29,6 +29,10 @@ export function ConfirmDialog({
     try {
       setBusy(true)
       await onConfirm()
+    } catch (err) {
+      // Don't let the rejection go unhandled, and leave the dialog open so the
+      // user can retry. The caller's mutation surfaces the actual error (toast).
+      console.error(err)
     } finally {
       setBusy(false)
     }

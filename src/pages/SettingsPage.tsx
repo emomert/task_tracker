@@ -42,6 +42,8 @@ export function SettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.profiles })
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] })
+      // Task rows embed a snapshot of each assignee, so refresh them too.
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
       setSavedNote(true)
       window.setTimeout(() => setSavedNote(false), 2000)
     },

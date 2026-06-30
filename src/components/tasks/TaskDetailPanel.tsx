@@ -18,7 +18,7 @@ const MarkdownDocEditor = lazy(() =>
 export function TaskDetailPanel() {
   const { projectId, taskId } = useParams()
   const navigate = useNavigate()
-  const { tasks, isLoading, patch, assign, remove } = useProjectTasks(projectId ?? '')
+  const { tasks, isLoading, patch, assign, remove, saveBody } = useProjectTasks(projectId ?? '')
 
   const task = tasks.find((t) => t.id === taskId) ?? null
 
@@ -178,7 +178,7 @@ export function TaskDetailPanel() {
                   <MarkdownDocEditor
                     key={task.id}
                     initialMarkdown={task.body_md ?? ''}
-                    onSave={(md) => patch(task.id, { body_md: md })}
+                    onSave={(md) => saveBody(task.id, md)}
                   />
                 </Suspense>
               </div>

@@ -87,6 +87,9 @@ function PersonEditModal({ person, onClose }: { person: Profile | null; onClose:
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.profiles })
+      // Task rows embed a snapshot of each assignee (name/emoji), so refresh
+      // every project's tasks too — otherwise cards show the old name.
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
       onClose()
     },
   })

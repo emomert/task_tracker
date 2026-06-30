@@ -64,6 +64,17 @@ export function useProjectTasks(projectId: string) {
     }
   }
 
+  /**
+   * Save a task's Markdown body. Unlike `patch`, this REJECTS on failure (it
+   * does not swallow the error), so the editor's autosave surfaces an error and
+   * retries instead of falsely reporting "Saved" and dropping the edit.
+   */
+  async function saveBody(id: string, body_md: string): Promise<void> {
+    setLocal((prev) => prev.map((t) => (t.id === id ? { ...t, body_md } : t)))
+    await updateTask(id, { body_md })
+    invalidate()
+  }
+
   async function assign(id: string, people: Profile[]): Promise<void> {
     setLocal((prev) => prev.map((t) => (t.id === id ? { ...t, assignees: people } : t)))
     try {
@@ -113,6 +124,7 @@ export function useProjectTasks(projectId: string) {
     refetch: query.refetch,
     create,
     patch,
+    saveBody,
     assign,
     remove,
     move,

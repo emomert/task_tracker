@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { ReactNode } from 'react'
+import { useAnchoredPopover } from '../../hooks/useAnchoredPopover'
 
 interface PopoverProps {
   button: ReactNode
@@ -10,7 +11,11 @@ interface PopoverProps {
   children: (close: () => void) => ReactNode
 }
 
-/** A lightweight popover: arbitrary trigger content + panel, outside-click/Escape to close. */
+/**
+ * A lightweight popover: an arbitrary trigger plus a panel that is rendered in a
+ * portal with fixed positioning, so it can never be clipped by an `overflow`
+ * ancestor (e.g. the table's scroll container). Outside-click / Escape close.
+ */
 export function Popover({
   button,
   ariaLabel,
@@ -19,32 +24,12 @@ export function Popover({
   panelClassName = '',
   children,
 }: PopoverProps) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    function onDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        // Consume Escape so a parent overlay (panel/modal) doesn't also close.
-        e.stopPropagation()
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
+  const { open, setOpen, triggerRef, panelRef, panelStyle } = useAnchoredPopover(align)
 
   return (
-    <div ref={ref} className="relative">
+    <>
       <button
+        ref={triggerRef}
         type="button"
         aria-label={ariaLabel}
         aria-haspopup="true"
@@ -58,15 +43,18 @@ export function Popover({
       >
         {button}
       </button>
-      {open && (
-        <div
-          className={`absolute z-50 mt-1 rounded-card border border-line bg-surface py-1 shadow-drag ${
-            align === 'right' ? 'right-0' : 'left-0'
-          } ${panelClassName}`}
-        >
-          {children(() => setOpen(false))}
-        </div>
-      )}
-    </div>
+      {open &&
+        panelStyle &&
+        createPortal(
+          <div
+            ref={panelRef}
+            style={panelStyle}
+            className={`z-50 overflow-y-auto rounded-card border border-line bg-surface py-1 shadow-drag ${panelClassName}`}
+          >
+            {children(() => setOpen(false))}
+          </div>,
+          document.body,
+        )}
+    </>
   )
 }

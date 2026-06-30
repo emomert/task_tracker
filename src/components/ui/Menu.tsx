@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { ReactNode } from 'react'
+import { useAnchoredPopover } from '../../hooks/useAnchoredPopover'
 
 interface MenuProps {
   ariaLabel: string
@@ -9,7 +10,8 @@ interface MenuProps {
   children: (close: () => void) => ReactNode
 }
 
-/** A small dropdown menu (trigger + items) with outside-click and Escape close. */
+/** A small dropdown menu (trigger + items), portal-rendered so it isn't clipped.
+ *  Outside-click and Escape close it. */
 export function Menu({
   ariaLabel,
   icon,
@@ -17,28 +19,12 @@ export function Menu({
   align = 'right',
   children,
 }: MenuProps) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    function onDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
+  const { open, setOpen, triggerRef, panelRef, panelStyle } = useAnchoredPopover(align)
 
   return (
-    <div ref={ref} className="relative">
+    <>
       <button
+        ref={triggerRef}
         type="button"
         aria-label={ariaLabel}
         aria-haspopup="menu"
@@ -52,17 +38,20 @@ export function Menu({
       >
         {icon}
       </button>
-      {open && (
-        <div
-          role="menu"
-          className={`absolute z-50 mt-1 min-w-[168px] rounded-card border border-line bg-surface py-1 shadow-drag ${
-            align === 'right' ? 'right-0' : 'left-0'
-          }`}
-        >
-          {children(() => setOpen(false))}
-        </div>
-      )}
-    </div>
+      {open &&
+        panelStyle &&
+        createPortal(
+          <div
+            ref={panelRef}
+            role="menu"
+            style={panelStyle}
+            className="z-50 min-w-[168px] overflow-y-auto rounded-card border border-line bg-surface py-1 shadow-drag"
+          >
+            {children(() => setOpen(false))}
+          </div>,
+          document.body,
+        )}
+    </>
   )
 }
 

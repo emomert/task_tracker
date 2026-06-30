@@ -3,9 +3,10 @@ import { QueryClient } from '@tanstack/react-query'
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Small team, infrequent changes — modest caching, no aggressive refetch.
+      // Small team, infrequent changes — modest caching. Refetch on window focus
+      // so teammates see each other's edits when they switch back to the tab.
       staleTime: 30_000,
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true,
       retry: 1,
     },
   },

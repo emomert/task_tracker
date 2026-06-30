@@ -32,6 +32,7 @@ import type { Project } from '../../types'
 import { Avatar, displayName } from '../ui/Avatar'
 import { Spinner } from '../ui/Spinner'
 import { Menu, MenuItem } from '../ui/Menu'
+import { useToast } from '../ui/Toast'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { ProjectFormModal } from './ProjectFormModal'
 import {
@@ -56,6 +57,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user, signOut } = useAuth()
+  const { notify } = useToast()
   const { projectId } = useParams()
 
   const projectsQuery = useQuery({ queryKey: qk.projects, queryFn: listProjects })
@@ -94,6 +96,8 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
       queryClient.invalidateQueries({ queryKey: qk.projects })
       if (projectId === id) navigate('/')
     },
+    onError: () =>
+      notify("Couldn't delete the project. Check your connection and try again.", 'error'),
   })
 
   const projects = projectsQuery.data ?? []
@@ -172,6 +176,19 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
           <div className="flex justify-center py-6">
             <Spinner />
           </div>
+        ) : projectsQuery.isError ? (
+          !collapsed && (
+            <div className="px-1 py-3 text-meta">
+              <p className="text-priority-high">Couldn't load projects.</p>
+              <button
+                type="button"
+                onClick={() => projectsQuery.refetch()}
+                className="mt-1 text-accent hover:underline"
+              >
+                Try again
+              </button>
+            </div>
+          )
         ) : projects.length === 0 ? (
           !collapsed && (
             <button
