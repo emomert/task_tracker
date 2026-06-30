@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   DndContext,
   PointerSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -49,6 +50,7 @@ import {
   MoreIcon,
   PencilIcon,
   PlusIcon,
+  SearchIcon,
   SettingsIcon,
   SunIcon,
   TrashIcon,
@@ -85,7 +87,10 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
     [profilesQuery.data, user?.id],
   )
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
+  )
 
   const createMut = useMutation({
     mutationFn: (values: {
@@ -215,9 +220,25 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
         </button>
       </div>
 
-      {/* My Work — the personal dashboard / home */}
-      <div className="px-2 pb-1 pt-1">
+      {/* My Work + Search */}
+      <div className="space-y-0.5 px-2 pb-1 pt-1">
         <SidebarLink to="/" end icon={<HomeIcon size={18} />} label="My Work" collapsed={narrow} />
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event('wt:open-search'))}
+          title="Search (Ctrl / ⌘ K)"
+          className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-ui text-muted transition-colors hover:bg-accent-soft/60 hover:text-ink ${
+            narrow ? 'justify-center' : ''
+          }`}
+        >
+          <SearchIcon size={18} />
+          {!narrow && <span className="flex-1 truncate text-left">Search</span>}
+          {!narrow && (
+            <kbd className="rounded border border-line px-1 text-[10px] font-medium text-muted">
+              ⌘K
+            </kbd>
+          )}
+        </button>
       </div>
 
       {/* Projects, grouped by team */}
@@ -510,7 +531,7 @@ function SidebarProjectItem({
             {...attributes}
             {...listeners}
             onClick={(e) => e.preventDefault()}
-            className="cursor-grab text-muted opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+            className="cursor-grab text-muted opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100 active:cursor-grabbing"
             aria-label="Drag to reorder"
           >
             <GripIcon size={14} />
@@ -521,7 +542,7 @@ function SidebarProjectItem({
         </span>
         {!collapsed && <span className="min-w-0 flex-1 truncate">{project.name}</span>}
         {!collapsed && (
-          <span className="opacity-0 transition-opacity group-hover:opacity-100">
+          <span className="opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100">
             <Menu ariaLabel={`${project.name} options`} icon={<MoreIcon size={16} />}>
               {(close) => (
                 <>
@@ -589,7 +610,7 @@ function ArchivedProjectItem({
           {project.emoji}
         </span>
         <span className="min-w-0 flex-1 truncate">{project.name}</span>
-        <span className="opacity-0 transition-opacity group-hover:opacity-100">
+        <span className="opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100">
           <Menu ariaLabel={`${project.name} options`} icon={<MoreIcon size={16} />}>
             {(close) => (
               <>

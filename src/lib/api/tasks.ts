@@ -6,6 +6,7 @@ import type {
   Profile,
   Task,
   TaskPatch,
+  TaskStatus,
   TaskWithAssignees,
 } from '../../types'
 
@@ -82,6 +83,33 @@ export async function listMyTasks(profileId: string): Promise<MyTask[]> {
           .filter((p): p is Profile => p != null),
       }
     })
+}
+
+export interface SearchTask {
+  id: string
+  title: string
+  status: TaskStatus
+  project: { id: string; name: string; emoji: string }
+}
+
+interface AllTaskRow {
+  id: string
+  title: string
+  status: TaskStatus
+  project: { id: string; name: string; emoji: string } | null
+}
+
+/** Every accessible task with its project — for the command palette / search. */
+export async function listAllTasks(): Promise<SearchTask[]> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('id, title, status, project:projects(id, name, emoji)')
+    .order('updated_at', { ascending: false })
+    .limit(500)
+  if (error) throw error
+  return ((data ?? []) as unknown as AllTaskRow[])
+    .filter((r): r is SearchTask => r.project != null)
+    .map((r) => ({ id: r.id, title: r.title, status: r.status, project: r.project! }))
 }
 
 async function maxTaskSortOrder(projectId: string): Promise<number | null> {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
+import { CommandPalette } from './CommandPalette'
 import { useLocalStorageState } from '../../hooks/useLocalStorageState'
 import { PanelLeftIcon } from '../ui/Icon'
 
@@ -53,6 +54,8 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      <CommandPalette />
     </div>
   )
 }
