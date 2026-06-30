@@ -6,7 +6,6 @@ import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { StatusSelect } from './StatusSelect'
 import { PrioritySelect } from './PrioritySelect'
 import { AssigneePicker } from './AssigneePicker'
-import { CommentThread } from './CommentThread'
 import { DatePicker } from '../ui/DatePicker'
 import { LoadingArea } from '../ui/Spinner'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
@@ -194,9 +193,6 @@ export function TaskDetailPanel() {
                   />
                 </Suspense>
               </div>
-
-              <hr className="my-4 border-line" />
-              <CommentThread taskId={task.id} />
             </div>
 
             {/* Footer */}
