@@ -44,8 +44,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           {toasts.map((t) => (
             <div
               key={t.id}
-              role="status"
-              className={`pointer-events-auto flex items-start gap-2 rounded-card border bg-surface px-3 py-2 text-ui text-ink shadow-drag ${
+              role={t.kind === 'error' ? 'alert' : 'status'}
+              className={`wt-animate-toast pointer-events-auto flex items-start gap-2 rounded-card border bg-surface px-3 py-2 text-ui text-ink shadow-drag ${
                 t.kind === 'error' ? 'border-priority-high/40' : 'border-line'
               }`}
             >

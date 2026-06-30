@@ -1,19 +1,38 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '../auth/AuthContext'
 import { qk } from '../lib/queryClient'
-import { listProfiles, updateProfile } from '../lib/api/profiles'
+import { listProfiles, setAdmin, updateProfile } from '../lib/api/profiles'
 import { DEFAULT_PERSON_EMOJI } from '../lib/constants'
 import type { Profile } from '../types'
 import { Avatar, displayName } from '../components/ui/Avatar'
 import { EmojiPicker } from '../components/ui/EmojiPicker'
 import { Modal } from '../components/ui/Modal'
+import { Menu, MenuItem } from '../components/ui/Menu'
 import { Spinner, LoadingArea } from '../components/ui/Spinner'
 import { ErrorState, errorMessage } from '../components/ui/ErrorState'
-import { PencilIcon } from '../components/ui/Icon'
+import { useToast } from '../components/ui/Toast'
+import { MoreIcon, PencilIcon, ShieldIcon } from '../components/ui/Icon'
 
 export function PeoplePage() {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const { notify } = useToast()
   const peopleQuery = useQuery({ queryKey: qk.profiles, queryFn: listProfiles })
   const [editing, setEditing] = useState<Profile | null>(null)
+
+  const me = useMemo(
+    () => peopleQuery.data?.find((p) => p.id === user?.id) ?? null,
+    [peopleQuery.data, user?.id],
+  )
+  const isAdmin = me?.is_admin ?? false
+
+  const adminMut = useMutation({
+    mutationFn: ({ id, value }: { id: string; value: boolean }) => setAdmin(id, value),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.profiles }),
+    onError: () =>
+      notify("Couldn't update admin access. Check your connection and try again.", 'error'),
+  })
 
   if (peopleQuery.isLoading) return <LoadingArea />
   if (peopleQuery.isError) return <ErrorState onRetry={() => peopleQuery.refetch()} />
@@ -24,33 +43,68 @@ export function PeoplePage() {
     <div className="mx-auto max-w-3xl px-6 py-8 md:px-8">
       <h1 className="text-title font-semibold text-ink">People</h1>
       <p className="mt-1 text-ui text-muted">
-        Everyone on the team. Anyone can update a person's name, role, or emoji.
+        Everyone on the team. You can edit yourself
+        {isAdmin ? '; as an admin you can edit anyone and manage admins.' : '.'}
       </p>
 
       <div className="mt-6 overflow-hidden rounded-card border border-line bg-surface">
-        {people.map((person) => (
-          <div
-            key={person.id}
-            className="flex items-center gap-3 border-b border-line px-4 py-3 last:border-b-0 hover:bg-accent-soft/40"
-          >
-            <Avatar profile={person} size="md" />
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-ui font-medium text-ink">{displayName(person)}</div>
-              <div className="truncate text-meta text-muted">{person.email}</div>
-            </div>
-            <div className="hidden w-40 truncate text-ui text-muted sm:block">
-              {person.role || <span className="text-muted">No role yet</span>}
-            </div>
-            <button
-              type="button"
-              className="btn-ghost p-1.5"
-              aria-label={`Edit ${displayName(person)}`}
-              onClick={() => setEditing(person)}
+        {people.map((person) => {
+          const isMe = person.id === user?.id
+          const canEdit = isAdmin || isMe
+          return (
+            <div
+              key={person.id}
+              className="flex items-center gap-3 border-b border-line px-4 py-3 transition-colors last:border-b-0 hover:bg-accent-soft/40"
             >
-              <PencilIcon size={16} />
-            </button>
-          </div>
-        ))}
+              <Avatar profile={person} size="md" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="truncate text-ui font-medium text-ink">
+                    {displayName(person)}
+                  </span>
+                  {person.is_admin && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-1.5 py-0.5 text-meta font-medium text-accent">
+                      <ShieldIcon size={11} /> Admin
+                    </span>
+                  )}
+                  {isMe && <span className="text-meta text-muted">· you</span>}
+                </div>
+                <div className="truncate text-meta text-muted">{person.email}</div>
+              </div>
+              <div className="hidden w-32 truncate text-ui text-muted sm:block">
+                {person.role || <span className="text-muted">No role yet</span>}
+              </div>
+              {canEdit && (
+                <button
+                  type="button"
+                  className="btn-ghost p-1.5"
+                  aria-label={`Edit ${displayName(person)}`}
+                  onClick={() => setEditing(person)}
+                >
+                  <PencilIcon size={16} />
+                </button>
+              )}
+              {isAdmin && (
+                <Menu
+                  ariaLabel={`${displayName(person)} admin options`}
+                  icon={<MoreIcon size={16} />}
+                >
+                  {(close) => (
+                    <MenuItem
+                      onClick={() => {
+                        adminMut.mutate({ id: person.id, value: !person.is_admin })
+                        close()
+                      }}
+                    >
+                      <ShieldIcon size={15} />
+                      {person.is_admin ? 'Remove admin' : 'Make admin'}
+                    </MenuItem>
+                  )}
+                </Menu>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       {people.length <= 1 && (

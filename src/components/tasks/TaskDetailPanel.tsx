@@ -79,11 +79,11 @@ export function TaskDetailPanel() {
 
   return (
     <div className="fixed inset-0 z-40">
-      <div className="absolute inset-0 bg-black/20" onClick={close} aria-hidden="true" />
+      <div className="wt-animate-overlay absolute inset-0 bg-black/20" onClick={close} aria-hidden="true" />
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col bg-surface shadow-panel outline-none"
+        className="wt-animate-drawer absolute right-0 top-0 flex h-full w-full max-w-xl flex-col bg-surface shadow-panel outline-none"
         role="dialog"
         aria-modal="true"
         aria-label="Task details"

@@ -1,6 +1,7 @@
 import { supabase } from '../supabase'
 import { sortKeyAfterMax } from '../sort'
 import type {
+  MyTask,
   NewTask,
   Profile,
   Task,
@@ -46,6 +47,41 @@ export async function getTask(id: string): Promise<TaskWithAssignees | null> {
   if (error) throw error
   if (!data) return null
   return flatten(data as unknown as TaskRowWithJoin)
+}
+
+interface MyTaskRow {
+  task:
+    | (Task & {
+        project: { id: string; name: string; emoji: string } | null
+        assignees: Array<{ profile: Profile | null }> | null
+      })
+    | null
+}
+
+/** Every task the given person is assigned to, across all projects (for the dashboard). */
+export async function listMyTasks(profileId: string): Promise<MyTask[]> {
+  const { data, error } = await supabase
+    .from('task_assignees')
+    .select(
+      'task:tasks!inner(*, project:projects(id, name, emoji), assignees:task_assignees(profile:profiles(*)))',
+    )
+    .eq('profile_id', profileId)
+
+  if (error) throw error
+
+  return ((data ?? []) as unknown as MyTaskRow[])
+    .map((r) => r.task)
+    .filter((t): t is NonNullable<MyTaskRow['task']> => t != null && t.project != null)
+    .map((t) => {
+      const { assignees, project, ...task } = t
+      return {
+        ...task,
+        project: project as { id: string; name: string; emoji: string },
+        assignees: (assignees ?? [])
+          .map((a) => a.profile)
+          .filter((p): p is Profile => p != null),
+      }
+    })
 }
 
 async function maxTaskSortOrder(projectId: string): Promise<number | null> {

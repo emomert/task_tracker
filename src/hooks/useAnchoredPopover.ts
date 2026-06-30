@@ -36,6 +36,8 @@ export function useAnchoredPopover(align: 'left' | 'right' = 'left') {
       else style.bottom = window.innerHeight - r.top + gap
       if (align === 'right') style.right = window.innerWidth - r.right
       else style.left = r.left
+      // Scale-in from the trigger corner (Emil: popovers are origin-aware).
+      style.transformOrigin = `${below ? 'top' : 'bottom'} ${align === 'right' ? 'right' : 'left'}`
       setPanelStyle(style)
     }
     place()

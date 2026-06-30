@@ -19,4 +19,5 @@ export const qk = {
   project: (id: string) => ['projects', id] as const,
   tasks: (projectId: string) => ['tasks', projectId] as const,
   task: (id: string) => ['task', id] as const,
+  myTasks: (userId: string) => ['my-tasks', userId] as const,
 }

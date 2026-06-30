@@ -12,6 +12,7 @@ export interface Profile {
   full_name: string | null
   role: string | null
   emoji: string
+  is_admin: boolean
   created_at: string
 }
 
@@ -50,6 +51,11 @@ export interface TaskAssignee {
 /** A task plus its resolved assignee profiles (the shape the UI works with). */
 export interface TaskWithAssignees extends Task {
   assignees: Profile[]
+}
+
+/** A task plus its project — the shape the personal "My Work" dashboard works with. */
+export interface MyTask extends TaskWithAssignees {
+  project: { id: string; name: string; emoji: string }
 }
 
 // ---------- Write payloads ----------

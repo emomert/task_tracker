@@ -10,6 +10,20 @@
       content="WorkTrack — a calm, minimal place for a small team to track projects and tasks."
     />
     <title>WorkTrack</title>
+    <script>
+      // Apply the saved (or system) theme before first paint to avoid a flash.
+      (function () {
+        try {
+          var raw = localStorage.getItem('wt:theme')
+          var pref = raw ? JSON.parse(raw) : 'system'
+          var dark =
+            pref === 'dark' ||
+            (pref === 'system' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches)
+          if (dark) document.documentElement.classList.add('dark')
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

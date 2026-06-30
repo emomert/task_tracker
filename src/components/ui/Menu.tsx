@@ -45,7 +45,7 @@ export function Menu({
             ref={panelRef}
             role="menu"
             style={panelStyle}
-            className="z-50 min-w-[168px] overflow-y-auto rounded-card border border-line bg-surface py-1 shadow-drag"
+            className="wt-animate-pop z-50 min-w-[168px] overflow-y-auto rounded-card border border-line bg-surface py-1 shadow-drag"
           >
             {children(() => setOpen(false))}
           </div>,

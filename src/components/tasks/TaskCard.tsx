@@ -17,8 +17,8 @@ export function TaskCardContent({
   const hasMeta = task.priority || task.due_date || task.assignees.length > 0
   return (
     <div
-      className={`rounded-card border border-line bg-surface p-3 ${
-        dragging ? 'shadow-drag' : 'shadow-card'
+      className={`rounded-card border border-line bg-surface p-3 transition-shadow ${
+        dragging ? 'shadow-drag' : 'shadow-card hover:shadow-drag'
       }`}
     >
       <div className="text-ui leading-snug text-ink">{task.title}</div>

@@ -5,7 +5,7 @@ import { LoginPage } from './pages/LoginPage'
 import { SignupPage } from './pages/SignupPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { PeoplePage } from './pages/PeoplePage'
-import { ProjectsHome } from './pages/ProjectsHome'
+import { MyWorkPage } from './pages/MyWorkPage'
 import { ProjectPage } from './pages/ProjectPage'
 import { TaskDetailPanel } from './components/tasks/TaskDetailPanel'
 
@@ -21,7 +21,7 @@ export default function App() {
       {/* Everything else requires a session. */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
-          <Route path="/" element={<ProjectsHome />} />
+          <Route path="/" element={<MyWorkPage />} />
           <Route path="/people" element={<PeoplePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/project/:projectId" element={<ProjectPage />}>

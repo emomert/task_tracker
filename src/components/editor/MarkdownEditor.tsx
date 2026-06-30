@@ -3,6 +3,7 @@ import '@blocknote/mantine/style.css'
 import { useCreateBlockNote } from '@blocknote/react'
 import { BlockNoteView } from '@blocknote/mantine'
 import { useEffect, useRef } from 'react'
+import { useTheme } from '../../theme/ThemeContext'
 
 interface MarkdownEditorProps {
   /** Markdown loaded into the editor on mount. Remount (via key) to change docs. */
@@ -23,6 +24,7 @@ export function MarkdownEditor({
   editable = true,
 }: MarkdownEditorProps) {
   const editor = useCreateBlockNote()
+  const { resolved } = useTheme()
   const ready = useRef(false)
   const onChangeRef = useRef(onChange)
 
@@ -53,7 +55,7 @@ export function MarkdownEditor({
     <BlockNoteView
       editor={editor}
       editable={editable}
-      theme="light"
+      theme={resolved}
       className="wt-editor"
       onChange={() => {
         if (!ready.current) return

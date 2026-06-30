@@ -39,13 +39,16 @@ import {
   ChevronLeftIcon,
   GripIcon,
   LogOutIcon,
+  MoonIcon,
   MoreIcon,
   PencilIcon,
   PlusIcon,
   SettingsIcon,
+  SunIcon,
   TrashIcon,
   UsersIcon,
 } from '../ui/Icon'
+import { useTheme } from '../../theme/ThemeContext'
 
 interface SidebarProps {
   collapsed: boolean
@@ -58,6 +61,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
   const queryClient = useQueryClient()
   const { user, signOut } = useAuth()
   const { notify } = useToast()
+  const { resolved, toggle } = useTheme()
   const { projectId } = useParams()
 
   const projectsQuery = useQuery({ queryKey: qk.projects, queryFn: listProjects })
@@ -249,6 +253,15 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
               <span className="min-w-0 flex-1 truncate text-meta text-muted">
                 {me ? displayName(me) : user?.email}
               </span>
+              <button
+                type="button"
+                onClick={toggle}
+                className="btn-ghost p-1.5"
+                aria-label={resolved === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+                title={resolved === 'dark' ? 'Light mode' : 'Dark mode'}
+              >
+                {resolved === 'dark' ? <SunIcon size={16} /> : <MoonIcon size={16} />}
+              </button>
               <button
                 type="button"
                 onClick={() => signOut()}

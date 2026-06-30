@@ -42,3 +42,16 @@ export async function updateProfile(id: string, patch: ProfilePatch): Promise<Pr
   }
   return data as Profile
 }
+
+/** Promote/demote a person to admin. RLS allows this only for admins. */
+export async function setAdmin(id: string, isAdmin: boolean): Promise<Profile> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ is_admin: isAdmin })
+    .eq('id', id)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as Profile
+}

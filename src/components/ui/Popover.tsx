@@ -49,7 +49,7 @@ export function Popover({
           <div
             ref={panelRef}
             style={panelStyle}
-            className={`z-50 overflow-y-auto rounded-card border border-line bg-surface py-1 shadow-drag ${panelClassName}`}
+            className={`wt-animate-pop z-50 overflow-y-auto rounded-card border border-line bg-surface py-1 shadow-drag ${panelClassName}`}
           >
             {children(() => setOpen(false))}
           </div>,

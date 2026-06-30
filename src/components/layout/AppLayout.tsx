@@ -25,11 +25,11 @@ export function AppLayout() {
       {mobileOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div
-            className="absolute inset-0 bg-black/20"
+            className="wt-animate-overlay absolute inset-0 bg-black/20"
             onClick={() => setMobileOpen(false)}
             aria-hidden="true"
           />
-          <div className="absolute left-0 top-0 h-full shadow-drag">
+          <div className="wt-animate-drawer-left absolute left-0 top-0 h-full shadow-drag">
             <Sidebar collapsed={false} onToggleCollapse={() => setMobileOpen(false)} isDrawer />
           </div>
         </div>

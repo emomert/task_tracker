@@ -4,30 +4,55 @@
 
 /* ============================================================
    Design tokens (see 04-design.md). A near-neutral, paper-like
-   base with a single calm indigo accent.
+   base with a single calm indigo accent — in light and dark.
 
    Tokens are stored as space-separated RGB channels so Tailwind's
    opacity modifiers (e.g. bg-accent/90) work. Use rgb(var(--x))
-   in raw CSS.
+   in raw CSS. The .dark variants are swapped in by ThemeProvider.
    ============================================================ */
 :root {
   --bg: 251 251 250; /* #FBFBFA */
   --surface: 255 255 255; /* #FFFFFF */
   --border: 234 234 232; /* #EAEAE8 */
   --text: 31 31 29; /* #1F1F1D */
-  --text-muted: 99 99 94; /* #63635E — darkened to clear WCAG AA (>=4.5:1) on bg & surface */
+  --text-muted: 99 99 94; /* #63635E — clears WCAG AA on bg & surface */
   --accent: 79 70 229; /* #4F46E5 */
   --accent-soft: 238 240 255; /* #EEF0FF */
 
-  --status-not-started: 154 160 166; /* #9AA0A6 */
-  --status-in-progress: 217 145 43; /* #D9912B */
-  --status-done: 46 158 107; /* #2E9E6B */
+  --status-not-started: 154 160 166;
+  --status-in-progress: 217 145 43;
+  --status-done: 46 158 107;
 
-  --priority-low: 154 160 166; /* #9AA0A6 */
-  --priority-medium: 59 130 246; /* #3B82F6 */
-  --priority-high: 224 83 61; /* #E0533D */
+  --priority-low: 154 160 166;
+  --priority-medium: 59 130 246;
+  --priority-high: 224 83 61;
+
+  /* Motion — Emil Kowalski curves (stronger than the CSS built-ins). */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 
   color-scheme: light;
+}
+
+.dark {
+  --bg: 25 25 25; /* #191919 — Notion-like near-black */
+  --surface: 32 32 32; /* #202020 */
+  --border: 56 56 54; /* #383836 */
+  --text: 233 233 230; /* #E9E9E6 */
+  --text-muted: 159 159 152; /* #9F9F98 — clears AA on the dark bg */
+  --accent: 139 130 246; /* #8B82F6 — lifted indigo for dark */
+  --accent-soft: 44 42 64; /* #2C2A40 */
+
+  --status-not-started: 138 143 150;
+  --status-in-progress: 224 162 76;
+  --status-done: 73 188 137;
+
+  --priority-low: 138 143 150;
+  --priority-medium: 96 165 250;
+  --priority-high: 240 124 104;
+
+  color-scheme: dark;
 }
 
 @layer base {
@@ -73,19 +98,22 @@
 @layer components {
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-md bg-accent px-3 py-1.5
-      text-ui font-medium text-white transition-colors
-      hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50;
+      text-ui font-medium text-white hover:bg-accent/90 active:scale-[0.97]
+      disabled:cursor-not-allowed disabled:opacity-50;
+    transition: transform 150ms var(--ease-out), background-color 150ms var(--ease-out);
   }
 
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2 rounded-md border border-line
-      bg-surface px-3 py-1.5 text-ui font-medium text-ink transition-colors
-      hover:bg-paper disabled:cursor-not-allowed disabled:opacity-50;
+      bg-surface px-3 py-1.5 text-ui font-medium text-ink hover:bg-paper active:scale-[0.97]
+      disabled:cursor-not-allowed disabled:opacity-50;
+    transition: transform 150ms var(--ease-out), background-color 150ms var(--ease-out);
   }
 
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 rounded-md px-2 py-1.5 text-ui
-      text-ink transition-colors hover:bg-paper disabled:cursor-not-allowed disabled:opacity-50;
+      text-ink hover:bg-paper active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50;
+    transition: transform 150ms var(--ease-out), background-color 150ms var(--ease-out);
   }
 
   .input-field {
@@ -113,6 +141,48 @@
 .wt-editor .bn-container {
   background-color: transparent;
 }
+
+/* ============================================================
+   Motion — entrances for overlays, menus, toasts, list rows.
+   transform + opacity only (GPU). Origin-aware popovers scale
+   from their trigger (transform-origin set inline).
+   ============================================================ */
+@keyframes wt-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes wt-modal-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes wt-drawer-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes wt-drawer-left-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes wt-pop-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes wt-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes wt-row-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.wt-animate-overlay { animation: wt-overlay-in 180ms var(--ease-out) backwards; }
+.wt-animate-modal { animation: wt-modal-in 200ms var(--ease-out) backwards; }
+.wt-animate-drawer { animation: wt-drawer-in 280ms var(--ease-drawer) backwards; }
+.wt-animate-drawer-left { animation: wt-drawer-left-in 280ms var(--ease-drawer) backwards; }
+.wt-animate-pop { animation: wt-pop-in 150ms var(--ease-out) backwards; }
+.wt-animate-toast { animation: wt-toast-in 240ms var(--ease-out) backwards; }
+.wt-animate-row { animation: wt-row-in 300ms var(--ease-out) backwards; }
 
 /* Respect reduced motion everywhere — but keep genuine progress spinners spinning. */
 @media (prefers-reduced-motion: reduce) {

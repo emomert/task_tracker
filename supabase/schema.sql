@@ -15,6 +15,7 @@ create table if not exists public.profiles (
   full_name   text,
   role        text,
   emoji       text default '🙂',
+  is_admin    boolean not null default false,
   created_at  timestamptz not null default now()
 );
 
@@ -117,6 +118,44 @@ create policy "write projects"       on public.projects       for all to authent
 create policy "write tasks"          on public.tasks          for all to authenticated using (true) with check (true);
 create policy "write task_assignees" on public.task_assignees for all to authenticated using (true) with check (true);
 
--- Profiles: anyone logged in can update people's display fields; inserts handled by the trigger.
+-- ========== Admin role ==========
+-- Admin status lives in profiles.is_admin. Authorization helper goes in a private
+-- (non-API-exposed) schema so it can't be called as a REST RPC.
+create schema if not exists private;
+grant usage on schema private to authenticated;
+
+create or replace function private.is_admin()
+returns boolean language sql security definer stable set search_path = '' as $$
+  select coalesce((select p.is_admin from public.profiles p where p.id = auth.uid()), false)
+$$;
+revoke all on function private.is_admin() from public;
+grant execute on function private.is_admin() to authenticated;
+
+-- Block non-admins from changing anyone's admin flag (including their own). A
+-- direct / no-JWT context (auth.uid() is null: migrations, service role) is trusted.
+create or replace function public.guard_profile_admin()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.is_admin is distinct from old.is_admin
+     and auth.uid() is not null
+     and not private.is_admin() then
+    raise exception 'Only admins can change admin status';
+  end if;
+  return new;
+end $$;
+revoke all on function public.guard_profile_admin() from public;
+
+drop trigger if exists profiles_guard_admin on public.profiles;
+create trigger profiles_guard_admin before update on public.profiles
+  for each row execute function public.guard_profile_admin();
+
+-- Profiles: you can update your own row; admins can update anyone's. The trigger
+-- above still prevents non-admins from flipping the is_admin flag.
 drop policy if exists "update profiles" on public.profiles;
-create policy "update profiles"      on public.profiles       for update to authenticated using (true) with check (true);
+drop policy if exists "update own or admin profile" on public.profiles;
+create policy "update own or admin profile" on public.profiles for update to authenticated
+  using ( id = (select auth.uid()) or private.is_admin() )
+  with check ( id = (select auth.uid()) or private.is_admin() );
+
+-- Bootstrap the first admin once, then manage the rest from the People page:
+--   update public.profiles set is_admin = true where email = 'you@example.com';
