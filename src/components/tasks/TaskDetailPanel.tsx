@@ -6,7 +6,6 @@ import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { StatusSelect } from './StatusSelect'
 import { PrioritySelect } from './PrioritySelect'
 import { AssigneePicker } from './AssigneePicker'
-import { SubtaskList } from './SubtaskList'
 import { CommentThread } from './CommentThread'
 import { DatePicker } from '../ui/DatePicker'
 import { LoadingArea } from '../ui/Spinner'
@@ -183,9 +182,6 @@ export function TaskDetailPanel() {
                 <span aria-hidden="true">·</span>
                 <span>Updated {format(parseISO(task.updated_at), 'MMM d, yyyy')}</span>
               </div>
-
-              <hr className="my-4 border-line" />
-              <SubtaskList taskId={task.id} />
 
               <hr className="my-4 border-line" />
               {/* Markdown document */}
