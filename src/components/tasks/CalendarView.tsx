@@ -92,19 +92,19 @@ export function CalendarView({ tasks, onOpenTask }: CalendarViewProps) {
             <div
               key={key}
               className={`min-h-[96px] border-b border-r border-line p-1 ${
-                inMonth ? '' : 'bg-paper/40'
+                isToday(day) ? 'bg-accent-soft' : inMonth ? '' : 'bg-paper/40'
               }`}
             >
-              <div
-                className={`px-1 text-meta ${
-                  isToday(day)
-                    ? 'font-semibold text-accent'
-                    : inMonth
-                      ? 'text-ink'
-                      : 'text-muted/60'
-                }`}
-              >
-                {format(day, 'd')}
+              <div className="px-1">
+                <span
+                  className={
+                    isToday(day)
+                      ? 'inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-accent px-1 text-meta font-semibold text-white'
+                      : `text-meta ${inMonth ? 'text-ink' : 'text-muted/60'}`
+                  }
+                >
+                  {format(day, 'd')}
+                </span>
               </div>
               <div className="mt-0.5 space-y-0.5">
                 {dayTasks.slice(0, 3).map((t) => {

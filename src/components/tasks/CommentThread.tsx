@@ -80,7 +80,7 @@ export function CommentThread({ taskId }: { taskId: string }) {
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={1}
-          placeholder="Add a comment…  (⌘/Ctrl + Enter to send)"
+          placeholder="Add a comment…"
           className="input-field min-h-[38px] flex-1 resize-y"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {

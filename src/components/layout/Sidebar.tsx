@@ -226,18 +226,13 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
         <button
           type="button"
           onClick={() => window.dispatchEvent(new Event('wt:open-search'))}
-          title="Search (Ctrl / ⌘ K)"
+          title="Search"
           className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-ui text-muted transition-colors hover:bg-accent-soft/60 hover:text-ink ${
             narrow ? 'justify-center' : ''
           }`}
         >
           <SearchIcon size={18} />
           {!narrow && <span className="flex-1 truncate text-left">Search</span>}
-          {!narrow && (
-            <kbd className="rounded border border-line px-1 text-[10px] font-medium text-muted">
-              ⌘K
-            </kbd>
-          )}
         </button>
       </div>
 
