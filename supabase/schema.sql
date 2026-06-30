@@ -56,7 +56,7 @@ create index if not exists task_assignees_profile_idx on public.task_assignees(p
 
 -- ========== updated_at trigger ==========
 create or replace function public.set_updated_at()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = '' as $$
 begin
   new.updated_at = now();
   return new;
@@ -87,6 +87,11 @@ end; $$;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- Harden: this function only ever runs as the sign-up trigger above. Postgres grants
+-- EXECUTE to PUBLIC by default, which would also expose it as a REST RPC
+-- (/rest/v1/rpc/handle_new_user). Revoke that — the trigger still fires regardless.
+revoke execute on function public.handle_new_user() from anon, authenticated, public;
 
 -- ========== Row Level Security ==========
 alter table public.profiles       enable row level security;
