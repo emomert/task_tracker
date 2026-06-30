@@ -287,7 +287,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
             {projectGroups.map((group) => (
               <div key={group.key} className="mb-2">
                 {!narrow && (
-                  <div className="px-1 pb-0.5 text-meta font-medium uppercase tracking-wide text-muted/80">
+                  <div className="px-1 pb-1 pt-0.5 text-label font-semibold uppercase tracking-wide text-ink">
                     {group.label}
                   </div>
                 )}

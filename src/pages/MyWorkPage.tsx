@@ -17,9 +17,10 @@ import { DueDate } from '../components/ui/DueDate'
 import { PriorityMarker } from '../components/ui/PriorityMarker'
 import { CalendarIcon, ListIcon } from '../components/ui/Icon'
 
-type Bucket = 'overdue' | 'week' | 'later' | 'none' | 'done'
+type Bucket = 'high' | 'overdue' | 'week' | 'later' | 'none' | 'done'
 
 const SECTIONS: Array<{ key: Bucket; title: string }> = [
+  { key: 'high', title: 'High priority' },
   { key: 'overdue', title: 'Overdue' },
   { key: 'week', title: 'This week' },
   { key: 'later', title: 'Later' },
@@ -83,6 +84,7 @@ export function MyWorkPage() {
     // "This week" runs through the end of the current Monday–Sunday week.
     const weekEnd = endOfWeek(today, { weekStartsOn: 1 })
     const out: Record<Bucket, MyTask[]> = {
+      high: [],
       overdue: [],
       week: [],
       later: [],
@@ -92,6 +94,7 @@ export function MyWorkPage() {
     for (const t of query.data ?? []) {
       let bucket: Bucket
       if (t.status === 'done') bucket = 'done'
+      else if (t.priority === 'high') bucket = 'high'
       else if (!t.due_date) bucket = 'none'
       else {
         const d = parseISO(t.due_date)
