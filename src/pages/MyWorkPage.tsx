@@ -129,11 +129,11 @@ export function MyWorkPage() {
     title: s.title,
     tasks: groups[s.key],
   }))
-  // High priority is a separate, additive section — its tasks still show in their
-  // own due-date sections below.
+  // High priority is a separate, additive section at the bottom — its tasks also
+  // show in their own due-date sections above.
   const sections =
     highPriority.length > 0
-      ? [{ title: 'High priority', tasks: highPriority }, ...dateSections]
+      ? [...dateSections, { title: 'High priority', tasks: highPriority }]
       : dateSections
 
   let rowIndex = 0
