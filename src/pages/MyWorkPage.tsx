@@ -7,7 +7,7 @@ import { qk } from '../lib/queryClient'
 import { listMyTasks } from '../lib/api/tasks'
 import { PRIORITY_RANK } from '../lib/constants'
 import type { MyTask } from '../types'
-import { LoadingArea } from '../components/ui/Spinner'
+import { ListSkeleton } from '../components/ui/Skeleton'
 import { ErrorState } from '../components/ui/ErrorState'
 import { StatusDot } from '../components/ui/StatusBadge'
 import { DueDate } from '../components/ui/DueDate'
@@ -68,7 +68,13 @@ export function MyWorkPage() {
     return out
   }, [query.data])
 
-  if (query.isLoading) return <LoadingArea />
+  if (query.isLoading) {
+    return (
+      <div className="mx-auto max-w-3xl px-6 py-8 md:px-8">
+        <ListSkeleton rows={6} />
+      </div>
+    )
+  }
   if (query.isError) return <ErrorState onRetry={() => query.refetch()} />
 
   const activeCount = (query.data ?? []).filter((t) => t.status !== 'done').length

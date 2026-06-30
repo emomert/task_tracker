@@ -8,10 +8,12 @@ import type { ProjectPatch, TaskStatus } from '../types'
 import { EmojiPicker } from '../components/ui/EmojiPicker'
 import { LoadingArea } from '../components/ui/Spinner'
 import { ErrorState } from '../components/ui/ErrorState'
-import { BoardIcon, TableIcon, PencilIcon } from '../components/ui/Icon'
+import { BoardIcon, TableIcon, CalendarIcon, PencilIcon } from '../components/ui/Icon'
 import { BoardView } from '../components/tasks/BoardView'
 import { TableView } from '../components/tasks/TableView'
+import { CalendarView } from '../components/tasks/CalendarView'
 import { ProjectSidePanel } from '../components/tasks/ProjectSidePanel'
+import { BoardSkeleton, ListSkeleton } from '../components/ui/Skeleton'
 import { ProjectFormModal } from '../components/layout/ProjectFormModal'
 import { useToast } from '../components/ui/Toast'
 import { projectColor } from '../lib/constants'
@@ -23,7 +25,7 @@ const MarkdownDocEditor = lazy(() =>
   })),
 )
 
-type View = 'board' | 'table' | 'notes'
+type View = 'board' | 'table' | 'calendar' | 'notes'
 
 export function ProjectPage() {
   const { projectId } = useParams()
@@ -131,7 +133,11 @@ export function ProjectPage() {
           {tasks.isError ? (
             <ErrorState onRetry={() => tasks.refetch()} />
           ) : tasks.isLoading && view !== 'notes' ? (
-            <LoadingArea />
+            view === 'board' ? (
+              <BoardSkeleton />
+            ) : (
+              <ListSkeleton rows={6} />
+            )
           ) : view === 'board' ? (
             <BoardView
               tasks={tasks.tasks}
@@ -147,6 +153,8 @@ export function ProjectPage() {
               onAssign={tasks.assign}
               onAddTask={(title) => tasks.create({ title })}
             />
+          ) : view === 'calendar' ? (
+            <CalendarView tasks={tasks.tasks} onOpenTask={openTask} />
           ) : (
             <div className="mx-auto max-w-canvas">
               <Suspense fallback={<LoadingArea label="Loading editor" />}>
@@ -160,7 +168,7 @@ export function ProjectPage() {
           )}
         </div>
 
-        {view !== 'notes' && (
+        {(view === 'board' || view === 'table') && (
           <ProjectSidePanel
             project={project}
             tasks={tasks.tasks}
@@ -194,6 +202,7 @@ function ViewToggle({ view, onChange }: { view: View; onChange: (v: View) => voi
   const options: Array<{ value: View; label: string; icon?: React.ReactNode }> = [
     { value: 'board', label: 'Board', icon: <BoardIcon size={15} /> },
     { value: 'table', label: 'Table', icon: <TableIcon size={15} /> },
+    { value: 'calendar', label: 'Calendar', icon: <CalendarIcon size={15} /> },
     { value: 'notes', label: 'Notes' },
   ]
   return (

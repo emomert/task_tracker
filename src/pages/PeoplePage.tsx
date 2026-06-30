@@ -9,7 +9,8 @@ import { Avatar, displayName } from '../components/ui/Avatar'
 import { EmojiPicker } from '../components/ui/EmojiPicker'
 import { Modal } from '../components/ui/Modal'
 import { Menu, MenuItem } from '../components/ui/Menu'
-import { Spinner, LoadingArea } from '../components/ui/Spinner'
+import { Spinner } from '../components/ui/Spinner'
+import { ListSkeleton } from '../components/ui/Skeleton'
 import { ErrorState, errorMessage } from '../components/ui/ErrorState'
 import { useToast } from '../components/ui/Toast'
 import { MoreIcon, PencilIcon, ShieldIcon } from '../components/ui/Icon'
@@ -34,7 +35,13 @@ export function PeoplePage() {
       notify("Couldn't update admin access. Check your connection and try again.", 'error'),
   })
 
-  if (peopleQuery.isLoading) return <LoadingArea />
+  if (peopleQuery.isLoading) {
+    return (
+      <div className="mx-auto max-w-3xl px-6 py-8 md:px-8">
+        <ListSkeleton rows={4} />
+      </div>
+    )
+  }
   if (peopleQuery.isError) return <ErrorState onRetry={() => peopleQuery.refetch()} />
 
   const people = peopleQuery.data ?? []
