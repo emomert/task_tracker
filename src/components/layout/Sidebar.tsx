@@ -28,6 +28,7 @@ import {
   updateProject,
 } from '../../lib/api/projects'
 import { listProfiles } from '../../lib/api/profiles'
+import { listTeamMemberships } from '../../lib/api/teams'
 import type { Project } from '../../types'
 import { Avatar, displayName } from '../ui/Avatar'
 import { Spinner } from '../ui/Spinner'
@@ -49,6 +50,7 @@ import {
   PencilIcon,
   PlusIcon,
   SettingsIcon,
+  ShieldIcon,
   SunIcon,
   TrashIcon,
   UsersIcon,
@@ -72,6 +74,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
 
   const projectsQuery = useQuery({ queryKey: qk.projects, queryFn: listProjects })
   const profilesQuery = useQuery({ queryKey: qk.profiles, queryFn: listProfiles })
+  const membersQuery = useQuery({ queryKey: qk.teamMembers, queryFn: listTeamMemberships })
 
   const [createOpen, setCreateOpen] = useState(false)
   const [editing, setEditing] = useState<Project | null>(null)
@@ -82,6 +85,19 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
     () => profilesQuery.data?.find((p) => p.id === user?.id) ?? null,
     [profilesQuery.data, user?.id],
   )
+  const isAdmin = me?.is_admin ?? false
+  const myTeamIds = useMemo(
+    () =>
+      new Set(
+        (membersQuery.data ?? [])
+          .filter((m) => m.profile.id === user?.id)
+          .map((m) => m.team_id),
+      ),
+    [membersQuery.data, user?.id],
+  )
+  // True when the viewer sees a project only because they're an admin (not on its team).
+  const isForeign = (project: Project) =>
+    isAdmin && project.team_id != null && !myTeamIds.has(project.team_id)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -256,6 +272,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
                       key={project.id}
                       project={project}
                       collapsed={collapsed && !isDrawer}
+                      foreign={isForeign(project)}
                       onEdit={() => setEditing(project)}
                       onDelete={() => setDeleting(project)}
                       onArchive={() => archiveMut.mutate({ id: project.id, value: true })}
@@ -428,12 +445,14 @@ function SidebarLink({
 function SidebarProjectItem({
   project,
   collapsed,
+  foreign,
   onEdit,
   onDelete,
   onArchive,
 }: {
   project: Project
   collapsed: boolean
+  foreign: boolean
   onEdit: () => void
   onDelete: () => void
   onArchive: () => void
@@ -482,6 +501,14 @@ function SidebarProjectItem({
           {project.emoji}
         </span>
         {!collapsed && <span className="min-w-0 flex-1 truncate">{project.name}</span>}
+        {!collapsed && foreign && (
+          <span
+            className="shrink-0 text-muted"
+            title="Visible because you're an admin — you're not on this project's team"
+          >
+            <ShieldIcon size={12} />
+          </span>
+        )}
         {!collapsed && (
           <span className="opacity-0 transition-opacity group-hover:opacity-100">
             <Menu ariaLabel={`${project.name} options`} icon={<MoreIcon size={16} />}>

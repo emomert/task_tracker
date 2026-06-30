@@ -3,12 +3,13 @@ import type { ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import type { Project, TaskWithAssignees } from '../../types'
+import { useAuth } from '../../auth/AuthContext'
 import { projectColor } from '../../lib/constants'
 import { qk } from '../../lib/queryClient'
-import { listTeams } from '../../lib/api/teams'
+import { listTeamMemberships, listTeams } from '../../lib/api/teams'
 import { isOverdue } from '../ui/DueDate'
 import { StatusDot } from '../ui/StatusBadge'
-import { ArchiveIcon, PencilIcon, UsersIcon } from '../ui/Icon'
+import { ArchiveIcon, PencilIcon, ShieldIcon, UsersIcon } from '../ui/Icon'
 
 interface ProjectSidePanelProps {
   project: Project
@@ -34,10 +35,18 @@ export function ProjectSidePanel({ project, tasks, onEdit, onArchive }: ProjectS
   }, [tasks])
 
   const color = projectColor(project.color)
+  const { user } = useAuth()
   const teamsQuery = useQuery({ queryKey: qk.teams, queryFn: listTeams })
+  const membersQuery = useQuery({ queryKey: qk.teamMembers, queryFn: listTeamMemberships })
   const teamName = project.team_id
     ? teamsQuery.data?.find((t) => t.id === project.team_id)?.name
     : null
+  const amMember =
+    project.team_id == null ||
+    (membersQuery.data ?? []).some(
+      (m) => m.team_id === project.team_id && m.profile.id === user?.id,
+    )
+  const foreign = project.team_id != null && !amMember
 
   return (
     <aside className="hidden w-72 shrink-0 overflow-y-auto border-l border-line p-4 lg:block">
@@ -59,6 +68,13 @@ export function ProjectSidePanel({ project, tasks, onEdit, onArchive }: ProjectS
         <UsersIcon size={13} />
         {teamName ?? 'No team (everyone)'}
       </div>
+
+      {foreign && (
+        <p className="mt-2 flex items-start gap-1.5 rounded-md bg-accent-soft px-2 py-1.5 text-meta text-muted">
+          <ShieldIcon size={13} className="mt-0.5 shrink-0" />
+          You're viewing this as an admin — you're not a member of this team.
+        </p>
+      )}
 
       <div className="mt-5">
         <h3 className="mb-2 text-meta font-medium uppercase tracking-wide text-muted">Tasks</h3>
