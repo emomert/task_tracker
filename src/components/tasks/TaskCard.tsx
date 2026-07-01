@@ -16,13 +16,16 @@ export function TaskCardContent({
 }) {
   const hasTop = task.priority || task.due_date
   const hasAssignees = task.assignees.length > 0
+  const done = task.status === 'done'
   return (
     <div
       className={`rounded-card border border-line bg-surface p-3 transition-shadow ${
         dragging ? 'shadow-drag' : 'shadow-card hover:shadow-drag'
-      }`}
+      } ${done ? 'opacity-65' : ''}`}
     >
-      <div className="text-ui leading-snug text-ink">{task.title}</div>
+      <div className={`text-ui leading-snug ${done ? 'text-muted line-through' : 'text-ink'}`}>
+        {task.title}
+      </div>
       {(hasTop || hasAssignees) && (
         <div className="mt-2.5 space-y-2">
           {hasTop && (

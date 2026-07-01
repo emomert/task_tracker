@@ -18,7 +18,9 @@ export function BoardColumn({ status, tasks, onOpenTask, onAddTask }: BoardColum
   const meta = STATUS_BY_VALUE[status]
 
   return (
-    <div className="flex w-72 shrink-0 flex-col">
+    // flex-1 + a min width so the three columns share the board width equally
+    // (symmetric, edge-to-edge) on desktop and scroll horizontally when narrow.
+    <div className="flex min-w-[15rem] flex-1 flex-col">
       <div className="mb-2 flex items-center gap-2 px-1.5">
         <StatusDot status={status} />
         <span className="text-ui font-medium text-ink">{meta.label}</span>

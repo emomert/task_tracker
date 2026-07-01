@@ -17,14 +17,13 @@ import { DueDate } from '../components/ui/DueDate'
 import { PriorityMarker } from '../components/ui/PriorityMarker'
 import { CalendarIcon, ListIcon } from '../components/ui/Icon'
 
-type Bucket = 'overdue' | 'week' | 'later' | 'none' | 'done'
+type Bucket = 'overdue' | 'week' | 'later' | 'none'
 
 const SECTIONS: Array<{ key: Bucket; title: string }> = [
   { key: 'overdue', title: 'Overdue' },
   { key: 'week', title: 'This week' },
   { key: 'later', title: 'Later' },
   { key: 'none', title: 'No due date' },
-  { key: 'done', title: 'Done' },
 ]
 
 type MyWorkView = 'list' | 'calendar'
@@ -78,6 +77,12 @@ export function MyWorkPage() {
     if (t) navigate(`/project/${t.project.id}/task/${taskId}`)
   }
 
+  // Done tasks are intentionally excluded from My Work entirely (list + calendar).
+  const activeTasks = useMemo(
+    () => (query.data ?? []).filter((t) => t.status !== 'done'),
+    [query.data],
+  )
+
   const groups = useMemo(() => {
     const today = startOfToday()
     // "This week" runs through the end of the current Monday–Sunday week.
@@ -87,12 +92,10 @@ export function MyWorkPage() {
       week: [],
       later: [],
       none: [],
-      done: [],
     }
-    for (const t of query.data ?? []) {
+    for (const t of activeTasks) {
       let bucket: Bucket
-      if (t.status === 'done') bucket = 'done'
-      else if (!t.due_date) bucket = 'none'
+      if (!t.due_date) bucket = 'none'
       else {
         const d = parseISO(t.due_date)
         if (isBefore(d, today)) bucket = 'overdue'
@@ -110,7 +113,7 @@ export function MyWorkPage() {
       })
     }
     return out
-  }, [query.data])
+  }, [activeTasks])
 
   if (query.isLoading) {
     return (
@@ -121,9 +124,9 @@ export function MyWorkPage() {
   }
   if (query.isError) return <ErrorState onRetry={() => query.refetch()} />
 
-  const activeCount = (query.data ?? []).filter((t) => t.status !== 'done').length
-  const highPriority = (query.data ?? [])
-    .filter((t) => t.status !== 'done' && t.priority === 'high')
+  const activeCount = activeTasks.length
+  const highPriority = activeTasks
+    .filter((t) => t.priority === 'high')
     .sort((a, b) => (a.due_date ?? '9999-99-99').localeCompare(b.due_date ?? '9999-99-99'))
   const dateSections = SECTIONS.filter((s) => groups[s.key].length > 0).map((s) => ({
     title: s.title,
@@ -154,7 +157,7 @@ export function MyWorkPage() {
 
       {view === 'calendar' ? (
         <div className="mt-6">
-          <CalendarView tasks={query.data ?? []} onOpenTask={openMyTask} />
+          <CalendarView tasks={activeTasks} onOpenTask={openMyTask} />
         </div>
       ) : sections.length === 0 ? (
         <div className="mt-16 flex flex-col items-center gap-2 text-center">

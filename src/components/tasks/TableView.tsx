@@ -34,6 +34,7 @@ interface TableViewProps {
 export function TableView({ tasks, onOpenTask, onPatch, onAssign, onAddTask }: TableViewProps) {
   const [sortKey, setSortKey] = useState<SortKey | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [showFinished, setShowFinished] = useState(false)
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -82,6 +83,11 @@ export function TableView({ tasks, onOpenTask, onPatch, onAssign, onAddTask }: T
     })
   }, [tasks, sortKey, sortDir])
 
+  // Finished (done) tasks are pulled out of the main list into a collapsed
+  // section so they don't clutter the active work.
+  const active = useMemo(() => sorted.filter((t) => t.status !== 'done'), [sorted])
+  const finished = useMemo(() => sorted.filter((t) => t.status === 'done'), [sorted])
+
   return (
     <div className="max-w-4xl overflow-x-auto">
       <table className="w-full border-collapse text-ui">
@@ -102,49 +108,46 @@ export function TableView({ tasks, onOpenTask, onPatch, onAssign, onAddTask }: T
           </tr>
         </thead>
         <tbody>
-          {sorted.map((task) => (
-            <tr key={task.id} className="border-b border-line transition-colors hover:bg-accent-soft/40">
-              <td className="py-1 pr-3">
-                <button
-                  type="button"
-                  onClick={() => onOpenTask(task.id)}
-                  className="rounded px-1 py-1 text-left text-ink hover:text-accent"
-                >
-                  {task.title}
-                </button>
-              </td>
-              <td className="py-1 pr-3">
-                <StatusSelect value={task.status} onChange={(status) => onPatch(task.id, { status })} />
-              </td>
-              <td className="hidden py-1 pr-3 md:table-cell">
-                <AssigneePicker
-                  value={task.assignees}
-                  onChange={(people) => onAssign(task.id, people)}
-                />
-              </td>
-              <td className="py-1 pr-3">
-                <DatePicker
-                  value={task.due_date}
-                  onChange={(date) => onPatch(task.id, { due_date: date })}
-                  ariaLabel="Set due date"
-                  buttonClassName={`inline-flex items-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-ui transition-colors hover:border-line hover:bg-paper ${
-                    isOverdue(task.due_date, task.status === 'done')
-                      ? 'font-medium text-priority-high'
-                      : 'text-ink'
-                  }`}
-                />
-              </td>
-              <td className="py-1 pr-3">
-                <PrioritySelect
-                  value={task.priority}
-                  onChange={(priority) => onPatch(task.id, { priority })}
-                />
-              </td>
-              <td className="hidden py-1 pr-3 text-meta text-muted lg:table-cell">
-                {format(parseISO(task.updated_at), 'MMM d')}
-              </td>
-            </tr>
+          {active.map((task) => (
+            <TaskRow
+              key={task.id}
+              task={task}
+              onOpenTask={onOpenTask}
+              onPatch={onPatch}
+              onAssign={onAssign}
+            />
           ))}
+          {finished.length > 0 && (
+            <>
+              <tr>
+                <td colSpan={6} className="pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowFinished((s) => !s)}
+                    aria-expanded={showFinished}
+                    className="inline-flex items-center gap-1.5 rounded px-1 py-1 text-meta font-medium uppercase tracking-wide text-muted transition-colors hover:text-ink"
+                  >
+                    {showFinished ? <ChevronUpIcon size={14} /> : <ChevronDownIcon size={14} />}
+                    Finished
+                    <span className="rounded-full bg-paper px-1.5 normal-case text-muted">
+                      {finished.length}
+                    </span>
+                  </button>
+                </td>
+              </tr>
+              {showFinished &&
+                finished.map((task) => (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    onOpenTask={onOpenTask}
+                    onPatch={onPatch}
+                    onAssign={onAssign}
+                    done
+                  />
+                ))}
+            </>
+          )}
         </tbody>
       </table>
 
@@ -152,6 +155,60 @@ export function TableView({ tasks, onOpenTask, onPatch, onAssign, onAddTask }: T
         <QuickAddTask onAdd={onAddTask} placeholder="New task" />
       </div>
     </div>
+  )
+}
+
+function TaskRow({
+  task,
+  onOpenTask,
+  onPatch,
+  onAssign,
+  done = false,
+}: {
+  task: TaskWithAssignees
+  onOpenTask: (id: string) => void
+  onPatch: (id: string, patch: TaskPatch) => void
+  onAssign: (id: string, people: Profile[]) => void
+  done?: boolean
+}) {
+  return (
+    <tr className="border-b border-line transition-colors hover:bg-accent-soft/40">
+      <td className="py-1 pr-3">
+        <button
+          type="button"
+          onClick={() => onOpenTask(task.id)}
+          className={`rounded px-1 py-1 text-left hover:text-accent ${
+            done ? 'text-muted line-through' : 'text-ink'
+          }`}
+        >
+          {task.title}
+        </button>
+      </td>
+      <td className="py-1 pr-3">
+        <StatusSelect value={task.status} onChange={(status) => onPatch(task.id, { status })} />
+      </td>
+      <td className="hidden py-1 pr-3 md:table-cell">
+        <AssigneePicker value={task.assignees} onChange={(people) => onAssign(task.id, people)} />
+      </td>
+      <td className="py-1 pr-3">
+        <DatePicker
+          value={task.due_date}
+          onChange={(date) => onPatch(task.id, { due_date: date })}
+          ariaLabel="Set due date"
+          buttonClassName={`inline-flex items-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-ui transition-colors hover:border-line hover:bg-paper ${
+            isOverdue(task.due_date, task.status === 'done')
+              ? 'font-medium text-priority-high'
+              : 'text-ink'
+          }`}
+        />
+      </td>
+      <td className="py-1 pr-3">
+        <PrioritySelect value={task.priority} onChange={(priority) => onPatch(task.id, { priority })} />
+      </td>
+      <td className="hidden py-1 pr-3 text-meta text-muted lg:table-cell">
+        {format(parseISO(task.updated_at), 'MMM d')}
+      </td>
+    </tr>
   )
 }
 
