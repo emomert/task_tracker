@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from './database.types'
 
 const url = import.meta.env.VITE_SUPABASE_URL
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -22,7 +23,7 @@ const FALLBACK_KEY = 'public-anon-key-placeholder'
 
 // A single, shared client for the whole app (see CLAUDE.md conventions).
 // Only the public anon key is ever used in the frontend; RLS protects the data.
-export const supabase = createClient(
+export const supabase = createClient<Database>(
   hasSupabaseConfig ? url : FALLBACK_URL,
   hasSupabaseConfig ? anonKey : FALLBACK_KEY,
   {

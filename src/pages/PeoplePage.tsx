@@ -45,6 +45,7 @@ export function PeoplePage() {
   if (peopleQuery.isError) return <ErrorState onRetry={() => peopleQuery.refetch()} />
 
   const people = peopleQuery.data ?? []
+  const adminCount = people.filter((p) => p.is_admin).length
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8 md:px-8">
@@ -99,6 +100,17 @@ export function PeoplePage() {
                   {(close) => (
                     <MenuItem
                       onClick={() => {
+                        // Never let the team remove its last admin — that would lock
+                        // team + admin management out of the app entirely (recovery
+                        // would need raw SQL). The DB enforces this too (defense in depth).
+                        if (person.is_admin && adminCount <= 1) {
+                          notify(
+                            "You can't remove the last admin. Make someone else an admin first.",
+                            'error',
+                          )
+                          close()
+                          return
+                        }
                         adminMut.mutate({ id: person.id, value: !person.is_admin })
                         close()
                       }}
@@ -149,8 +161,10 @@ function PersonEditModal({ person, onClose }: { person: Profile | null; onClose:
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.profiles })
       // Task rows embed a snapshot of each assignee (name/emoji), so refresh
-      // every project's tasks too — otherwise cards show the old name.
+      // every project's tasks — and the My Work dashboard, which also renders
+      // assignee name/emoji — otherwise cards show the old name.
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['my-tasks'] })
       onClose()
     },
   })
@@ -209,7 +223,7 @@ function PersonEditModal({ person, onClose }: { person: Profile | null; onClose:
         </div>
       </div>
       {save.isError && (
-        <p className="mt-3 text-meta text-priority-high">{errorMessage(save.error)}</p>
+        <p className="mt-3 text-meta text-danger">{errorMessage(save.error)}</p>
       )}
     </Modal>
   )

@@ -1,0 +1,37 @@
+name: CI
+
+# Typecheck, build, and test on every push and pull request so broken code is
+# caught before it reaches the deploy host (Netlify / Cloudflare Pages).
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test --if-present
+
+      - name: Build
+        run: npm run build
+        env:
+          # Dummy values so the Vite build succeeds in CI without real secrets.
+          # (RLS-protected anon values are only needed at runtime, not build.)
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-placeholder-anon-key

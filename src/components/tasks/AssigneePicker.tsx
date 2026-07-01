@@ -54,7 +54,7 @@ export function AssigneePicker({ value, onChange, placeholder = 'Assign…' }: A
         }
         if (peopleQuery.isError) {
           return (
-            <p className="px-3 py-2 text-meta text-priority-high">
+            <p className="px-3 py-2 text-meta text-danger">
               Couldn't load people. Try again.
             </p>
           )

@@ -10,7 +10,7 @@ Build in phases. Finish and verify one before starting the next; each has a **De
 - Scaffold a Vite + React + TypeScript app.
 - Add Tailwind CSS and the design tokens from `04-design.md` (as CSS variables + Tailwind theme).
 - Install dependencies: `@supabase/supabase-js`, `@blocknote/react`, `@blocknote/core`, `@dnd-kit/core`, `@dnd-kit/sortable`, `react-router-dom`, `@tanstack/react-query`.
-- Create a Supabase project; run the SQL from `03-data-model.md`.
+- Create a Supabase project; run the SQL from `supabase/schema.sql` (the single source of truth; `03-data-model.md` is explanatory only).
 - Add `.env` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) and a committed `.env.example`.
 - Centralize the client in `src/lib/supabase.ts`. Set up the data layer folders `src/lib/api/` and shared types in `src/types.ts`.
 
@@ -45,7 +45,7 @@ Build in phases. Finish and verify one before starting the next; each has a **De
 ## Phase 3 — Project page & Markdown canvas
 **Goal:** open a project and write notes.
 
-- Route per project (`/project/:id`); header shows emoji + editable name and the Board/Table toggle (board default).
+- Route per project (`/project/:id`); header shows emoji + editable name and the view toggle (Table / Board / Calendar / Notes; table default).
 - Integrate BlockNote for the project's `description_md`: load Markdown → editor, edit, **serialize back to Markdown**, autosave (debounced) with a "Saving…/Saved" indicator.
 
 **DoD:** I can open a project, write headings/lists/checkboxes/a table, and the content saves as Markdown and reloads correctly.
@@ -79,9 +79,9 @@ Build in phases. Finish and verify one before starting the next; each has a **De
 - Three columns (Not Started / In Progress / Done) with counts and status dots.
 - Cards show title, assignee chips, due date (red if overdue), priority marker.
 - dnd-kit: drag between columns → update `status`; reorder within a column → update `sort_order`.
-- "+ Add task" per column. View toggle wired so **Board is the default** on first open.
+- "+ Add task" per column. View toggle wired between Table / Board / Calendar / Notes (**Table is the default** on first open).
 
-**DoD:** opening a project shows the board first; dragging a card changes its status and persists; within-column order persists.
+**DoD:** the board is reachable from the view toggle; dragging a card changes its status and persists; within-column order persists.
 
 ---
 
@@ -113,7 +113,7 @@ Build in phases. Finish and verify one before starting the next; each has a **De
 - Confirm Supabase auth works from the deployed URL (add the deployed URL to Supabase Auth's allowed redirect/site URLs).
 - Test with two accounts on two devices.
 
-**DoD:** the team can open the URL, sign up, and use WorkTrack together. See `07-setup-and-deploy.md` for the click-by-click.
+**DoD:** the team can open the URL, sign up, and use Task Tracker together. See `07-setup-and-deploy.md` for the click-by-click.
 
 ---
 

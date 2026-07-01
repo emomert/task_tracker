@@ -6,6 +6,8 @@ import { qk } from '../../lib/queryClient'
 import { listProjects } from '../../lib/api/projects'
 import { listAllTasks } from '../../lib/api/tasks'
 import { projectColor } from '../../lib/constants'
+import { OPEN_SEARCH_EVENT } from '../../lib/events'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import {
   HomeIcon,
   LayersIcon,
@@ -36,6 +38,7 @@ export function CommandPalette() {
   const [selected, setSelected] = useState(0)
   const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   // Open with ⌘K / Ctrl+K, or a click on the sidebar Search button.
   useEffect(() => {
@@ -49,10 +52,10 @@ export function CommandPalette() {
       setOpen(true)
     }
     window.addEventListener('keydown', onKey)
-    window.addEventListener('wt:open-search', onOpen)
+    window.addEventListener(OPEN_SEARCH_EVENT, onOpen)
     return () => {
       window.removeEventListener('keydown', onKey)
-      window.removeEventListener('wt:open-search', onOpen)
+      window.removeEventListener(OPEN_SEARCH_EVENT, onOpen)
     }
   }, [])
 
@@ -62,6 +65,10 @@ export function CommandPalette() {
       setSelected(0)
     }
   }, [open])
+
+  // Contain Tab within the palette while open, and restore focus to the opener
+  // (⌘K trigger / Search button) when it closes.
+  useFocusTrap(dialogRef, open)
 
   const projectsQuery = useQuery({ queryKey: qk.projects, queryFn: listProjects, enabled: open })
   const tasksQuery = useQuery({ queryKey: qk.allTasks, queryFn: listAllTasks, enabled: open })
@@ -134,6 +141,7 @@ export function CommandPalette() {
         aria-hidden="true"
       />
       <div
+        ref={dialogRef}
         className="wt-animate-modal relative z-10 w-full max-w-lg overflow-hidden rounded-card border border-line bg-surface shadow-drag"
         role="dialog"
         aria-modal="true"
@@ -151,17 +159,32 @@ export function CommandPalette() {
             onKeyDown={onInputKey}
             placeholder="Search projects and tasks…"
             aria-label="Search"
+            role="combobox"
+            aria-expanded={true}
+            aria-controls="cmdk-listbox"
+            aria-autocomplete="list"
+            aria-activedescendant={
+              results.length ? `cmdk-opt-${Math.min(selected, results.length - 1)}` : undefined
+            }
             autoFocus
             className="w-full bg-transparent py-3 text-ui text-ink outline-none placeholder:text-muted"
           />
         </div>
-        <div className="max-h-[60vh] overflow-y-auto py-1">
+        <div
+          id="cmdk-listbox"
+          role="listbox"
+          aria-label="Results"
+          className="max-h-[60vh] overflow-y-auto py-1"
+        >
           {results.length === 0 ? (
             <p className="px-3 py-6 text-center text-meta text-muted">No matches.</p>
           ) : (
             results.map((r, i) => (
               <button
                 key={`${r.to}-${i}`}
+                id={`cmdk-opt-${i}`}
+                role="option"
+                aria-selected={i === selected}
                 type="button"
                 onClick={() => go(r.to)}
                 onMouseEnter={() => setSelected(i)}

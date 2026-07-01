@@ -130,7 +130,7 @@ export function SignupPage() {
             placeholder="At least 6 characters"
           />
         </div>
-        {error && <p className="text-meta text-priority-high">{error}</p>}
+        {error && <p className="text-meta text-danger">{error}</p>}
         <button type="submit" className="btn-primary w-full" disabled={busy}>
           {busy && <Spinner size={14} className="border-white/40 border-t-white" />}
           Create account

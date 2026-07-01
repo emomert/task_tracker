@@ -188,7 +188,13 @@ export async function setAssignees(taskId: string, profileIds: string[]): Promis
 
   if (toAdd.length > 0) {
     const rows = toAdd.map((profile_id) => ({ task_id: taskId, profile_id }))
-    const { error } = await supabase.from('task_assignees').insert(rows)
+    // Upsert-ignore rather than insert: if a concurrent edit already added one of
+    // these people, a plain insert would hit the (task_id, profile_id) primary key
+    // and abort the WHOLE batch (dropping the other adds and skipping the removals
+    // below). Ignoring duplicates makes the add a safe no-op instead.
+    const { error } = await supabase
+      .from('task_assignees')
+      .upsert(rows, { onConflict: 'task_id,profile_id', ignoreDuplicates: true })
     if (error) throw error
   }
 

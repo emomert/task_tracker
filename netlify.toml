@@ -1,6 +1,12 @@
-# Netlify build & SPA-routing config for WorkTrack (Vite static SPA).
+# Netlify build & SPA-routing config for Task Tracker (Vite static SPA).
 # Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in the Netlify UI
 # (Site configuration -> Environment variables), not here.
+#
+# Security response headers live in `public/_headers` (copied to dist/ by Vite),
+# which BOTH Netlify and Cloudflare Pages read — keeping the headers host-agnostic.
+# A full resource Content-Security-Policy is intentionally NOT enabled yet: the
+# inline theme script in index.html plus BlockNote's inline styles would need a
+# hash/nonce, so enable it only after smoke-testing on a deploy preview.
 
 [build]
   command = "npm run build"

@@ -146,7 +146,7 @@ export function SettingsPage() {
             </button>
             {savedNote && <span className="text-meta text-status-done">Saved</span>}
             {saveProfile.isError && (
-              <span className="text-meta text-priority-high">
+              <span className="text-meta text-danger">
                 {errorMessage(saveProfile.error)}
               </span>
             )}
@@ -188,7 +188,7 @@ export function SettingsPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
           </div>
-          {pwError && <p className="text-meta text-priority-high">{pwError}</p>}
+          {pwError && <p className="text-meta text-danger">{pwError}</p>}
           {pwSaved && <p className="text-meta text-status-done">Password updated.</p>}
           <button type="submit" className="btn-primary" disabled={pwBusy}>
             {pwBusy && <Spinner size={14} className="border-white/40 border-t-white" />}

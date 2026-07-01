@@ -1,6 +1,20 @@
-import { QueryClient } from '@tanstack/react-query'
+import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 
 export const queryClient = new QueryClient({
+  // Consistent observability sink: a deployed static app has no other place for
+  // failures to surface. Individual mutations still toast their own user-facing
+  // messages; these handlers just guarantee every query/mutation error leaves a
+  // console trail (swap console.error for a real reporter like Sentry later).
+  queryCache: new QueryCache({
+    onError: (error, query) => {
+      console.error('Query failed:', query.queryKey, error)
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError: (error) => {
+      console.error('Mutation failed:', error)
+    },
+  }),
   defaultOptions: {
     queries: {
       // Small team, infrequent changes — modest caching. Refetch on window focus

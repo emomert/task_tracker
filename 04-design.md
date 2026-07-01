@@ -46,7 +46,7 @@ Provide an optional dark theme later; v1 can ship light-only. If you add dark mo
 │  SIDEBAR      │  MAIN / CANVAS                               │
 │  (collapsible)│                                             │
 │               │  📁 Project name                [Board|Table]│
-│  WorkTrack    │  ───────────────────────────────────────────│
+│  Task Tracker │  ───────────────────────────────────────────│
 │               │                                             │
 │  📁 VNDP      │   (Board: 3 status columns of cards)        │
 │  🚀 WordPunk  │     Not Started │ In Progress │ Done         │

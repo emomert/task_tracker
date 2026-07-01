@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { queryClient } from '../lib/queryClient'
 
 interface AuthContextValue {
   session: Session | null
@@ -33,8 +34,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
     })
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession)
+      // Wipe all cached data when the account changes so a different user on the
+      // same browser can never be served the previous user's projects/people/tasks
+      // from the (module-level, above-AuthProvider) query cache.
+      if (event === 'SIGNED_OUT') queryClient.clear()
     })
 
     return () => {
@@ -66,6 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async signOut() {
         const { error } = await supabase.auth.signOut()
         if (error) throw error
+        // Belt-and-suspenders: also clear here (the onAuthStateChange handler
+        // above clears on SIGNED_OUT) so the cache is empty the moment we log out.
+        queryClient.clear()
       },
       async updatePassword(newPassword) {
         const { error } = await supabase.auth.updateUser({ password: newPassword })

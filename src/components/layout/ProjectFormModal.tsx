@@ -181,7 +181,7 @@ export function ProjectFormModal({
         />
       </div>
 
-      {error && <p className="mt-3 text-meta text-priority-high">{error}</p>}
+      {error && <p className="mt-3 text-meta text-danger">{error}</p>}
     </Modal>
   )
 }

@@ -16,7 +16,7 @@ export function SaveIndicator({ status }: { status: SaveStatus }) {
       aria-live="polite"
       className={`inline-flex select-none items-center gap-1.5 text-meta transition-opacity duration-300 ${
         status === 'idle' ? 'opacity-0' : 'opacity-100'
-      } ${status === 'error' ? 'text-priority-high' : 'text-muted'}`}
+      } ${status === 'error' ? 'text-danger' : 'text-muted'}`}
     >
       {status === 'saving' && <Spinner size={12} />}
       {status === 'saved' && <CheckIcon size={13} />}

@@ -20,6 +20,7 @@ import { CSS } from '@dnd-kit/utilities'
 
 import { useAuth } from '../../auth/AuthContext'
 import { qk } from '../../lib/queryClient'
+import { openSearch } from '../../lib/events'
 import { sortKeyBetween } from '../../lib/sort'
 import {
   createProject,
@@ -225,7 +226,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
         <SidebarLink to="/" end icon={<HomeIcon size={18} />} label="My Work" collapsed={narrow} />
         <button
           type="button"
-          onClick={() => window.dispatchEvent(new Event('wt:open-search'))}
+          onClick={openSearch}
           title="Search"
           className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-ui text-muted transition-colors hover:bg-accent-soft/60 hover:text-ink ${
             narrow ? 'justify-center' : ''
@@ -262,7 +263,7 @@ export function Sidebar({ collapsed, onToggleCollapse, isDrawer = false }: Sideb
         ) : projectsQuery.isError ? (
           !collapsed && (
             <div className="px-1 py-3 text-meta">
-              <p className="text-priority-high">Couldn't load projects.</p>
+              <p className="text-danger">Couldn't load projects.</p>
               <button
                 type="button"
                 onClick={() => projectsQuery.refetch()}

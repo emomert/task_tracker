@@ -1,4 +1,4 @@
-# Getting started with WorkTrack
+# Getting started with Task Tracker
 
 This is the built app (React + Vite + Supabase). The planning docs live alongside it
 (`01-overview.md` … `07-setup-and-deploy.md`). Follow the steps below to run it locally and
@@ -9,7 +9,7 @@ deploy it for free.
 1. Sign up at [supabase.com](https://supabase.com) and create a project (pick a region near your team).
 2. Open **SQL Editor → New query**, paste the contents of [`supabase/schema.sql`](supabase/schema.sql),
    and **Run**. This creates the tables, security rules (RLS), and the sign-up trigger.
-3. Because WorkTrack sends **no email**, turn off email confirmation so sign-up logs people in
+3. Because Task Tracker sends **no email**, turn off email confirmation so sign-up logs people in
    immediately: **Authentication → Providers → Email →** uncheck **Confirm email** → Save.
 4. Open **Project Settings → API** and copy:
    - **Project URL** → `VITE_SUPABASE_URL`

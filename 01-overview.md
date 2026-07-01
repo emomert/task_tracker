@@ -13,7 +13,7 @@ Build the smallest pleasant tool that covers the real workflow: projects → tas
 - **The manager** (e.g. the boss) creates projects, creates tasks, assigns people, and tracks progress.
 - **Team members** log in, see what's assigned to them, update statuses, and write task notes.
 
-For a team this size, everyone is trusted and can do everything. There is no need for granular permissions in v1.
+For a team this size the trust model is light: projects are grouped into **teams** (you see a project if you're on its team, or if it has no team), and an **admin** role manages teams and people. There are no fine-grained per-field permissions beyond that.
 
 ## Guiding principles
 
@@ -21,7 +21,7 @@ For a team this size, everyone is trusted and can do everything. There is no nee
 - **Markdown underneath.** All rich text is stored as Markdown so content stays portable and easy to edit or migrate.
 - **You own it.** Your code, your database, your data. If any free service ever changes, you can move without losing anything.
 - **Free to run.** Every component sits on a free tier. No email service, no paid hosting.
-- **Boring where it counts.** No real-time multiplayer, no permission matrices. Simple, reliable building blocks.
+- **Boring where it counts.** No real-time multiplayer, no elaborate permission matrices — just lightweight teams and an admin role. Simple, reliable building blocks.
 
 ## In scope for v1
 
@@ -30,7 +30,7 @@ For a team this size, everyone is trusted and can do everything. There is no nee
 - A Markdown canvas per project for notes.
 - People management: name, email, role, emoji.
 - Tasks within a project: title, status, assignees (one or more), due date, priority, and a per-task Markdown document.
-- Two task views: a Kanban **board** (default) and a **table**.
+- Task views: a **table** (the default), a Kanban **board**, and a **calendar** — plus a Markdown **notes** view for the project canvas.
 - Deployed to a free host, reachable by URL.
 
 ## Out of scope for v1 (note as future ideas, don't build)
@@ -39,7 +39,7 @@ For a team this size, everyone is trusted and can do everything. There is no nee
 - Real-time co-editing / live cursors.
 - Comments, mentions, file attachments.
 - Multiple workspaces, nested pages, databases-of-databases.
-- Calendar / timeline / Gantt views.
+- Timeline / Gantt views. (A simple month **calendar** view of task due dates *did* ship.)
 - Granular roles and permissions.
 - Mobile native apps (the web app should simply be usable on a phone).
 

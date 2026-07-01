@@ -11,7 +11,9 @@ export interface Profile {
   email: string | null
   full_name: string | null
   role: string | null
-  emoji: string
+  /** Nullable in the DB (the column has a default, not NOT NULL); consumers
+   *  fall back to a default emoji when it's null/empty. */
+  emoji: string | null
   is_admin: boolean
   created_at: string
 }

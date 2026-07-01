@@ -120,9 +120,9 @@ A block-based WYSIWYG editor (BlockNote) used in two places: the **project canva
 
 ---
 
-## 7. Board view (Kanban) — default
+## 7. Board view (Kanban)
 
-The default way to see a project's tasks.
+A drag-and-drop way to see a project's tasks. (The **table** view, Feature 8, is what opens by default — see the note there.)
 
 **Requirements**
 - Three columns: **Not Started**, **In Progress**, **Done**.
@@ -132,7 +132,7 @@ The default way to see a project's tasks.
 - Clicking a card opens the task detail (Feature 8).
 
 **Acceptance criteria**
-- The board is what I see first when I open a project.
+- I can switch to the board from the view toggle.
 - Dragging a card to another column changes its status and persists.
 - Card order within a column persists.
 
@@ -143,13 +143,13 @@ The default way to see a project's tasks.
 An alternative list view, toggled from the board.
 
 **Requirements**
-- A **view toggle** (Board / Table) on the project page; board is default.
+- A **view toggle** (Table / Board / Calendar / Notes) on the project page; **table is the default** whenever you open a project.
 - Columns: title, status, assignees, due date, priority, updated.
 - **Sort** by clicking column headers (at least by due date, priority, status, updated).
 - Inline editing of status, priority, and assignees from the row (or a row click that opens the task detail).
 
 **Acceptance criteria**
-- I can switch to Table and back; Board stays the default on first open.
+- I can switch to Board and back; Table stays the default on first open.
 - I can sort by due date and by status.
 - I can change a task's status from the table.
 
@@ -173,7 +173,7 @@ Opening a task shows its full document and metadata.
 
 - All data is stored in Supabase Postgres and protected by Row Level Security.
 - The app is a static site; it reads/writes the database directly using the public anon key.
-- Any authenticated team member can read and edit all projects, tasks, and people (flat trust model). See `03-data-model.md` for the exact RLS policies.
+- Access is team-based: a project belongs to one team, and you can read/edit it (and its tasks) only if you're on that team — or if it has no team (visible to everyone). An admin role manages teams and people. See `03-data-model.md` for the exact RLS policies.
 
 **Acceptance criteria**
 - Two different logged-in users see the same projects/tasks; a change by one is visible to the other after refresh.

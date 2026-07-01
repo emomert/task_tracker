@@ -33,13 +33,13 @@ VS Code is handy for looking at files, but Claude Code runs in the terminal.
 2. Open the project → **Settings → API**. Copy two values:
    - **Project URL** → this is `VITE_SUPABASE_URL`.
    - **anon public** key → this is `VITE_SUPABASE_ANON_KEY`. (This key is safe to put in the app; do **not** copy the `service_role` key.)
-3. Open **SQL Editor → New query**, paste the SQL from `docs/03-data-model.md`, and run it. This creates your tables, security rules, and the sign-up trigger.
+3. Open **SQL Editor → New query**, paste the entire contents of **`supabase/schema.sql`**, and run it. This is the single source of truth — it creates your tables, the team-based Row Level Security, the admin role, and the sign-up trigger. (Do **not** copy SQL out of `03-data-model.md`; that file is explanatory only and does not include the current security model.)
 
 ## C. Build the app with Claude Code
 
 1. Put this whole spec folder somewhere on your computer.
 2. Open a terminal in that folder and run `claude`.
-3. Tell it: *"Read CLAUDE.md and everything in docs/. Use Stack A. Start with Phase 0 of docs/06-build-plan.md and stop after each phase so I can test."*
+3. Tell it: *"Read CLAUDE.md and every numbered doc (01–07, at the repo root). Use Stack A. Start with Phase 0 of `06-build-plan.md` and stop after each phase so I can test."*
 4. When asked, give it the two Supabase values (or paste them into the `.env` file it creates).
 5. Run the app locally when prompted:
    ```
@@ -69,7 +69,19 @@ Because v1 has no email invites, onboarding is simple:
 2. Each person opens it once and **signs up** with their work email + a password they choose.
 3. Once signed up, they appear on the **People** page and can be assigned tasks. Anyone can edit a person's name/role/emoji.
 
-That's it — no admin account-creation step in v1.
+### Required manual steps after first sign-up
+
+These can't be done from the app and must be run once by whoever owns the Supabase project. **Write down who did them** — they aren't reproducible from the repo alone.
+
+1. **Make the first admin.** The app has an admin role (manages Teams and grants admin to others), but a fresh database has zero admins and admin can't be self-granted in the app. After you sign up, run this once in **SQL Editor**, using your email:
+   ```sql
+   update public.profiles set is_admin = true where email = 'you@example.com';
+   ```
+   From then on, admins can promote others from the **People** page.
+2. **Auth dashboard toggles** (Authentication → Providers → Email, and → Settings):
+   - **Confirm email**: leave **on** if you want email verification (uses Supabase's rate-limited default mailer), or turn **off** for the no-email self-serve onboarding this app was designed around.
+   - **Leaked-password protection**: turn **on** (recommended hardening; off by default).
+3. **Consider closing public sign-up** once your team is in. Onboarding is open by design (anyone with the URL can register). After everyone has an account you may disable new sign-ups in the Auth settings so strangers can't self-register and read the team directory.
 
 ## F. Good to know
 

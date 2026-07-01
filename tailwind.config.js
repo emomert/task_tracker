@@ -28,6 +28,8 @@ export default {
           medium: 'rgb(var(--priority-medium) / <alpha-value>)',
           high: 'rgb(var(--priority-high) / <alpha-value>)',
         },
+        // AA-contrast red for error/validation TEXT (see --danger-text).
+        danger: 'rgb(var(--danger-text) / <alpha-value>)',
       },
       fontFamily: {
         sans: [

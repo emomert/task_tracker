@@ -1,8 +1,11 @@
 -- ============================================================
--- WorkTrack — database schema, RLS, and sign-up trigger.
--- Run this once in your Supabase project:
+-- Task Tracker — database schema, RLS, triggers, and sign-up trigger.
+-- THIS FILE IS THE SINGLE SOURCE OF TRUTH for the database.
+-- Run it once in your Supabase project:
 --   Dashboard -> SQL Editor -> New query -> paste -> Run.
--- Mirrors 03-data-model.md. Safe to run on a fresh project.
+-- Safe to run on a fresh project (idempotent-ish: "if not exists" / "or replace").
+-- (03-data-model.md is an explanatory summary only; when they differ, this wins.
+--  Incremental changes since the initial setup live in supabase/migrations/.)
 -- ============================================================
 
 -- ========== Extensions ==========
@@ -76,7 +79,7 @@ create trigger tasks_set_updated_at before update on public.tasks
 
 -- ========== Auto-create profile on sign-up ==========
 create or replace function public.handle_new_user()
-returns trigger language plpgsql security definer set search_path = public as $$
+returns trigger language plpgsql security definer set search_path = '' as $$
 begin
   insert into public.profiles (id, email, full_name)
   values (
@@ -143,6 +146,12 @@ begin
      and auth.uid() is not null
      and not private.is_admin() then
     raise exception 'Only admins can change admin status';
+  end if;
+  -- Never allow removing the last remaining admin — that would lock team + admin
+  -- management out of the app entirely (recovery would need raw SQL).
+  if old.is_admin and not new.is_admin
+     and (select count(*) from public.profiles where is_admin) <= 1 then
+    raise exception 'Cannot remove the last admin';
   end if;
   return new;
 end $$;
@@ -269,41 +278,28 @@ create policy "write accessible task_assignees" on public.task_assignees for all
 --     where team_id is null;
 
 -- ============================================================
--- Subtasks (checklist) + Comments (feature batch 3).
--- Both inherit access from the parent task (private.can_access_task).
+-- Pin created_by to the authenticated user on insert (anti-spoofing).
+-- Placed last so projects / tasks / teams all exist. Direct / no-JWT contexts
+-- (auth.uid() is null: migrations, service role) are trusted and left as-is.
 -- ============================================================
-create table if not exists public.subtasks (
-  id         uuid primary key default gen_random_uuid(),
-  task_id    uuid not null references public.tasks(id) on delete cascade,
-  title      text not null,
-  is_done    boolean not null default false,
-  sort_order double precision not null default 0,
-  created_at timestamptz not null default now()
-);
-create index if not exists subtasks_task_idx on public.subtasks(task_id);
-alter table public.subtasks enable row level security;
-drop policy if exists "read accessible subtasks" on public.subtasks;
-create policy "read accessible subtasks" on public.subtasks for select to authenticated
-  using (private.can_access_task(task_id));
-drop policy if exists "write accessible subtasks" on public.subtasks;
-create policy "write accessible subtasks" on public.subtasks for all to authenticated
-  using (private.can_access_task(task_id)) with check (private.can_access_task(task_id));
+create or replace function public.pin_created_by()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if auth.uid() is not null then
+    new.created_by := auth.uid();
+  end if;
+  return new;
+end $$;
+revoke all on function public.pin_created_by() from public;
 
-create table if not exists public.comments (
-  id         uuid primary key default gen_random_uuid(),
-  task_id    uuid not null references public.tasks(id) on delete cascade,
-  author_id  uuid references public.profiles(id) on delete set null,
-  body       text not null,
-  created_at timestamptz not null default now()
-);
-create index if not exists comments_task_idx on public.comments(task_id);
-alter table public.comments enable row level security;
-drop policy if exists "read accessible comments" on public.comments;
-create policy "read accessible comments" on public.comments for select to authenticated
-  using (private.can_access_task(task_id));
-drop policy if exists "insert own comments" on public.comments;
-create policy "insert own comments" on public.comments for insert to authenticated
-  with check (private.can_access_task(task_id) and author_id = (select auth.uid()));
-drop policy if exists "delete own comments" on public.comments;
-create policy "delete own comments" on public.comments for delete to authenticated
-  using (author_id = (select auth.uid()) or private.is_admin());
+drop trigger if exists projects_pin_created_by on public.projects;
+create trigger projects_pin_created_by before insert on public.projects
+  for each row execute function public.pin_created_by();
+
+drop trigger if exists tasks_pin_created_by on public.tasks;
+create trigger tasks_pin_created_by before insert on public.tasks
+  for each row execute function public.pin_created_by();
+
+drop trigger if exists teams_pin_created_by on public.teams;
+create trigger teams_pin_created_by before insert on public.teams
+  for each row execute function public.pin_created_by();

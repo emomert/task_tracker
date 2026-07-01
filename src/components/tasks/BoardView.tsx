@@ -51,7 +51,6 @@ export function BoardView({ tasks, onOpenTask, onAddTask, onMove }: BoardViewPro
   const [columns, setColumns] = useState<Columns>(() => groupByStatus(tasks))
   const [activeId, setActiveId] = useState<string | null>(null)
   const dragging = useRef(false)
-  const fromRef = useRef<TaskStatus | null>(null)
 
   // Adopt server state whenever we're not mid-drag.
   useEffect(() => {
@@ -83,7 +82,6 @@ export function BoardView({ tasks, onOpenTask, onAddTask, onMove }: BoardViewPro
 
   function handleDragStart(event: DragStartEvent) {
     dragging.current = true
-    fromRef.current = findContainer(String(event.active.id))
     setActiveId(String(event.active.id))
   }
 
@@ -114,8 +112,6 @@ export function BoardView({ tasks, onOpenTask, onAddTask, onMove }: BoardViewPro
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     dragging.current = false
-    const from = fromRef.current
-    fromRef.current = null
     setActiveId(null)
     if (!over) {
       setColumns(groupByStatus(tasks))
@@ -130,25 +126,26 @@ export function BoardView({ tasks, onOpenTask, onAddTask, onMove }: BoardViewPro
       return
     }
 
+    // `columns[to]` already contains the dragged card: handleDragOver inserted
+    // it for a cross-column move, or it never left for a same-column reorder.
+    // Either way, reposition it to the card/column actually under the pointer at
+    // release, so the drop lands where the user let go — not at the entry point
+    // where the card first crossed into the column.
     const items = columns[to]
-    // Cross-column moves were already placed by handleDragOver, so only a
-    // same-column reorder needs the move applied here (avoids a double-move).
-    let ordered = items
-    if (from === to) {
-      const oldIndex = items.findIndex((t) => t.id === id)
-      const overIndex = isStatusId(overId)
-        ? items.length - 1
-        : items.findIndex((t) => t.id === overId)
-      if (oldIndex >= 0 && overIndex >= 0 && oldIndex !== overIndex) {
-        ordered = arrayMove(items, oldIndex, overIndex)
-      }
-    }
-
-    const idx = ordered.findIndex((t) => t.id === id)
-    if (idx < 0) {
+    const oldIndex = items.findIndex((t) => t.id === id)
+    if (oldIndex < 0) {
       setColumns(groupByStatus(tasks))
       return
     }
+    const overIndex = isStatusId(overId)
+      ? items.length - 1
+      : items.findIndex((t) => t.id === overId)
+    const ordered =
+      overIndex >= 0 && overIndex !== oldIndex
+        ? arrayMove(items, oldIndex, overIndex)
+        : items
+
+    const idx = ordered.findIndex((t) => t.id === id)
     const before = ordered[idx - 1]
     const after = ordered[idx + 1]
     const newSort = sortKeyBetween(before?.sort_order ?? null, after?.sort_order ?? null)

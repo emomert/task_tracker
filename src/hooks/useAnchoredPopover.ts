@@ -1,6 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
 /**
  * Anchors a popover/menu panel to its trigger with fixed positioning, so the
  * panel can be rendered in a portal and escape any `overflow` clipping ancestor
@@ -14,6 +17,9 @@ export function useAnchoredPopover(align: 'left' | 'right' = 'left', matchWidth 
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  // Whether to return focus to the trigger when the panel closes. Cleared by the
+  // outside-pointer handler so clicking a different control doesn't get yanked.
+  const restoreFocusRef = useRef(true)
   const [panelStyle, setPanelStyle] = useState<CSSProperties | null>(null)
 
   // Position the panel relative to the trigger using viewport coordinates.
@@ -51,11 +57,42 @@ export function useAnchoredPopover(align: 'left' | 'right' = 'left', matchWidth 
     }
   }, [open, align, matchWidth])
 
+  // Move focus into the panel when it opens (respecting anything that already
+  // autofocused itself, e.g. a search input), and return focus to the trigger
+  // when it closes — but only if focus is still inside the panel, so clicking a
+  // different control elsewhere doesn't get its focus yanked back to the trigger.
+  useEffect(() => {
+    if (!open) return
+    const panel = panelRef.current
+    if (!panel) return
+    // Assume we'll return focus to the trigger on close; the outside-pointer
+    // handler clears this when the user clicks a different control.
+    restoreFocusRef.current = true
+    let raf = 0
+    if (!panel.contains(document.activeElement)) {
+      raf = requestAnimationFrame(() => {
+        const first = panel.querySelector<HTMLElement>(FOCUSABLE)
+        ;(first ?? panel).focus?.()
+      })
+    }
+    return () => {
+      if (raf) cancelAnimationFrame(raf)
+      // Restore via a ref flag, NOT by querying the panel: by the time this
+      // passive cleanup runs the panel node is already detached and focus has
+      // fallen to <body>, so `panel.contains(activeElement)` would always be
+      // false and the trigger would never get focus back.
+      if (restoreFocusRef.current) triggerRef.current?.focus?.()
+    }
+  }, [open])
+
   useEffect(() => {
     if (!open) return
     function onPointerDown(e: MouseEvent) {
       const t = e.target as Node
       if (!triggerRef.current?.contains(t) && !panelRef.current?.contains(t)) {
+        // Clicked a different control — let it keep focus instead of restoring
+        // to the trigger.
+        restoreFocusRef.current = false
         setOpen(false)
       }
     }
@@ -64,6 +101,29 @@ export function useAnchoredPopover(align: 'left' | 'right' = 'left', matchWidth 
         // Consume Escape so a parent overlay (panel/modal) doesn't also close.
         e.stopPropagation()
         setOpen(false)
+        return
+      }
+      // Roving focus among the panel's items (Notion-style menus/listboxes).
+      // Skip when a text field is focused so arrows still move the caret / filter.
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End') {
+        const panel = panelRef.current
+        if (!panel) return
+        const ae = document.activeElement as HTMLElement | null
+        if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) {
+          return
+        }
+        const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+          (n) => n.offsetParent !== null,
+        )
+        if (items.length === 0) return
+        e.preventDefault()
+        const idx = ae ? items.indexOf(ae) : -1
+        let next: number
+        if (e.key === 'Home') next = 0
+        else if (e.key === 'End') next = items.length - 1
+        else if (e.key === 'ArrowDown') next = idx < 0 ? 0 : (idx + 1) % items.length
+        else next = idx <= 0 ? items.length - 1 : idx - 1
+        items[next]?.focus()
       }
     }
     document.addEventListener('mousedown', onPointerDown)

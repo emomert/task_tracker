@@ -27,6 +27,11 @@
   --priority-medium: 59 130 246;
   --priority-high: 224 83 61;
 
+  /* Error/validation TEXT. Darker than --priority-high so 12px copy clears WCAG
+     AA (4.5:1) on the paper/surface; the brighter --priority-high stays for
+     non-text markers (dots/borders). */
+  --danger-text: 194 58 36; /* #C23A24 — ~4.9:1 on white */
+
   /* Motion — Emil Kowalski curves (stronger than the CSS built-ins). */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
@@ -51,6 +56,9 @@
   --priority-low: 138 143 150;
   --priority-medium: 96 165 250;
   --priority-high: 240 124 104;
+
+  /* On the dark surface the bright red already clears AA (~6:1). */
+  --danger-text: 240 124 104;
 
   color-scheme: dark;
 }
